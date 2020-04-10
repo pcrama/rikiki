@@ -1,0 +1,69 @@
+#+TITLE: Rikiki Card Game Web Application
+#+AUTHOR: Philippe Crama
+
+* Introduction
+Rikiki is a card game I played as a child.  This web application must allow to
+play together over the internet.
+
+* Stories
+** User types
+There is one organizer: he sends out an invitation to the players (the
+organizer may be a player, too).  Once all players have accepted the
+invitation by clicking the link, the organizer starts the game.  The cards are
+dealt and the game proceeds.
+
+** As the organizer, I want to generate a different invitation link for each player
+- The organizer provides a list of names.
+- The invitations are shared over a different channel (outside the
+  scope of this application).
+- The invitations must be difficult to guess.
+- The organizer may be a player, but the player and organizer pages are
+  separate.
+
+** As a player, I want to accept an invitation link to register in the game
+- Clicking an invitation link, the player sees his name prefilled but
+  may edit it before confirming/joining.
+- Once joined, the player can observe the other players joining the
+  game.  The player has no cards yet.
+
+** As the organizer, I want to start the game/next round
+- The organizer
+  1. Selects how many cards to deal (prefilled with max amount of
+     cards available per player, then decreasing by 1 after each
+     round),
+  2. clicks a button to start the game once all players are
+     connected.
+- Once the game is started, no more players can connect to the game.
+- A player leaving the game is outside the scope of this application.
+- The cards are dealt to all players according to the rules of the
+  game.  If not all cards can be dealt, the top card is turned: its
+  colour sets the trump's colour.
+- All players can see only their cards and the trump colour.
+
+** As a player, I want to bid when it's my turn
+- Each player sees the previous player's bids when they are confirmed.
+- Each player can confirm his bid only when the previous players have
+  confirmed.
+
+** As a player, I want to play a card
+- All players must confirm their bid before the first card is played.
+- A player may only play a card when it is his turn.
+- It is not possible to take back a card.
+- Once every player has put down one card, the winner gets the trick.
+- The round ends when all cards have been played.
+- Scoring is outside the scope of this application.
+
+* Implementation
+** Hosting
+- Probably on repl.it, with settings similar to these and a link to
+  https://repl.it/github/pcrama/rikiki for a repl.it badge.
+  #+BEGIN_EXAMPLE
+    language = "python3"
+    run = "FLASK_APP=flaskr FLASK_ENV=production python3 -m flask run --port 3000 --host 0.0.0.0"
+  #+END_EXAMPLE
+- No database, all data is in memory.
+
+** Security
+- No logins, the security is based on hard to guess links to set a
+  session cookie.
+- There is 1! organizer and 1! game.
