@@ -13,6 +13,7 @@ class Player:
         self._confirmed_name = None
         self._cards = []
         self._bid = None
+        self._round = None
 
     @property
     def name(self):
@@ -65,17 +66,23 @@ class Player:
         else:
             self._confirmed_name = confirmed_name
 
-    def accept_cards(self, cards):
+    def accept_cards(self, round_, cards):
         self._ensure_confirmed()
-        self._cards = cards
+        if self._round is None or self._cards == []:
+            self._round = round_
+            self._cards = cards
+        else:
+            raise IllegalStateException(f"{self} can't change game round now")
 
     def _ensure_confirmed(self):
         if not self.is_confirmed:
             raise IllegalStateException(f"{self} not confirmed yet")
 
     def _ensure_has_cards(self):
-        if self._cards is None or self._cards == []:
-            raise IllegalStateException(f"{self} has no cards")
+        if (self._cards is None or self._cards == []
+                or self._round is None):
+            raise IllegalStateException(
+                f"{self} has no cards or not in a round")
 
     def _ensure_has_bid(self):
         if self._bid is None:
@@ -86,4 +93,22 @@ class Player:
         self._ensure_has_cards()
         self._ensure_has_bid()
         self._cards.remove(card)
+        self._round.play_card(self, card)
         return card
+
+
+class Round:
+    def __init__(self, confirmed_players):
+        if all(p.is_confirmed for p in confirmed_players) and len(confirmed_players) > 0:
+            self._players = confirmed_players
+        else:
+            raise ValueError(
+                "Can't initialize round without confirmed players")
+        self._current_player = 0
+
+    @property
+    def current_player(self):
+        return self._players[self._current_player]
+
+    def play_card(self, player, card):
+        pass
