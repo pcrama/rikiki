@@ -67,3 +67,59 @@ dealt and the game proceeds.
 - No logins, the security is based on hard to guess links to set a
   session cookie.
 - There is 1! organizer and 1! game.
+** Classes
+*** Models
+**** Player
+#+BEGIN_SRC plantuml :file doc/models_player_state_diagram.png
+  left to right direction
+  hide empty description
+  state "not is_confirmed" as unconfirmed
+  [*] --> unconfirmed : _~_init~_~_
+  unconfirmed --> is_confirmed : confirm
+  is_confirmed : name
+  is_confirmed --> has_cards : accept_cards
+  has_cards : cards
+  has_cards : round
+  has_cards --> has_bid : place_bid
+  has_bid : bid
+  has_bid --> has_bid : play_card
+  has_bid --> has_cards : accept_cards\nwhen no cards\nleft
+#+END_SRC
+
+#+RESULTS:
+[[file:doc/models_player_state_diagram.png]]
+
+**** Round
+A round is part of a game: in a round
+1. Each player receives their cards,
+2. Each player places their bid,
+3. The players play their cards when it is their turn until no cards
+   are left.
+
+#+BEGIN_SRC plantuml :file doc/models_player_round_sequence_diagram.png
+  actor Organizer as O
+  actor "P 1" as A1
+  actor "P 2" as A2
+  participant "Player1" as P1
+  participant "Player2" as P2
+  participant Game as G
+  participant Round as R
+  G --> P1 : _~_init~_~_
+  G --> P2 : _~_init~_~_
+  A1 --> P1 : confirm
+  A2 --> P2 : confirm
+  O --> G : start_game
+  G --> R : _~_init~_~_
+  R --> P1 : accept_cards
+  R --> P2 : accept_cards
+  A2 --> P2 : place_bid
+  A1 --> P1 : place_bid
+  A1 --> P1 : play_card
+  P1 --> R : play_card
+  A2 --> P2 : play_card
+  P2 --> R : play_card
+  R --> G : round_finished  
+#+END_SRC
+
+#+RESULTS:
+[[file:doc/models_player_round_sequence_diagram.png]]
