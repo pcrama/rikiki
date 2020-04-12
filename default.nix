@@ -25,6 +25,7 @@ stdenv.mkDerivation rec {
       ] ++ (if lib.inNixShell
             then [
                     autopep8
+                    pydocstyle
                     pytest
                     pytest-flask
                     pytest-mock
