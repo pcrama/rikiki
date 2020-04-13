@@ -112,8 +112,10 @@ A round is part of a game: in a round
   G --> R : _~_init~_~_
   R --> P1 : accept_cards
   R --> P2 : accept_cards
-  A2 --> P2 : place_bid
   A1 --> P1 : place_bid
+  P1 --> R : place_bid
+  A2 --> P2 : place_bid
+  P2 --> R : place_bid
   A1 --> P1 : play_card
   P1 --> R : play_card
   A2 --> P2 : play_card
@@ -123,3 +125,5 @@ A round is part of a game: in a round
 
 #+RESULTS:
 [[file:doc/models_player_round_sequence_diagram.png]]
+
+The ~Round~ maintains the trick count for all players.
