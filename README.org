@@ -126,4 +126,17 @@ A round is part of a game: in a round
 #+RESULTS:
 [[file:doc/models_player_round_sequence_diagram.png]]
 
-The ~Round~ maintains the trick count for all players.
+The ~Round~ maintains the trick count for all players, but each Player
+is responsible for maintaining his bid.
+
+#+BEGIN_SRC plantuml :file doc/models_round_state_diagram.png
+  hide empty description
+  left to right direction
+  [*] --> bidding : _~_init~_~_ with\n//n// confirmed players\nand //m// cards per player
+  bidding --> playing : //n// times\nplace_bid
+  playing --> done : //n * m// times\nplay_card
+  done --> [*]
+#+END_SRC
+
+#+RESULTS:
+[[file:doc/models_round_state_diagram.png]]

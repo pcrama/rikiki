@@ -4,10 +4,29 @@ import random
 import typing
 
 
-class IllegalStateException(RuntimeError):
+class ModelError(RuntimeError):
+    """Super class for all exceptions thrown by the models."""
+
+    pass
+
+
+class IllegalStateError(ModelError):
     """A model was asked to perform an illegal state transition."""
 
     pass
+
+
+class OutOfTurnError(ModelError):
+    """A Player tried to place a bid or play a card outside his turn."""
+
+    def __init__(self, operation, current_player, offending_player):
+        """Create new OutOfTurnError."""
+        self.operation = operation
+        self.current_player = current_player
+        self.offending_player = offending_player
+        super().__init__(
+            f"{offending_player} wanted to {operation}, "
+            f"but it is {current_player}'s turn")
 
 
 def _ensure_non_blank(s, name, message=None):
@@ -110,21 +129,21 @@ a Round."""
             self._round = round_
             self._cards = cards
         else:
-            raise IllegalStateException(f"{self} can't change game round now")
+            raise IllegalStateError(f"{self} can't change game round now")
 
     def _ensure_confirmed(self) -> None:
         if not self.is_confirmed:
-            raise IllegalStateException(f"{self} not confirmed yet")
+            raise IllegalStateError(f"{self} not confirmed yet")
 
     def _ensure_has_cards(self) -> None:
         if (self._cards is None or self._cards == []
                 or self._round is None):
-            raise IllegalStateException(
+            raise IllegalStateError(
                 f"{self} has no cards or not in a round")
 
     def _ensure_has_bid(self) -> None:
         if self._bid is None:
-            raise IllegalStateException(f"{self} has not placed his bid yet")
+            raise IllegalStateError(f"{self} has not placed his bid yet")
 
     def play_card(self, card):
         """Put a card down on the table."""
@@ -136,74 +155,128 @@ a Round."""
         return card
 
 
-MAX_CARDS = 52
-@enum.auto
+CARDS_PER_SUIT = 13
+SUITS = 4
+MAX_CARDS = CARDS_PER_SUIT * SUITS
+
+
+@enum.unique
 class Card(enum.IntEnum):
     r"""Enumeration of all cards.
 
     (let ((counter 0))
-      (dolist (suit '("Heart" "Diamond" "Club" "Spade"))
+      (dolist (suit '("Spade" "Club" "Diamond" "Heart"))
         (dolist (value '(2 3 4 5 6 7 8 9 10 "Jack" "Queen" "King" "Ace"))
           (insert (format "\n    %s%s = %d" suit value counter))
           (incf counter))))
     """
 
-    Heart2 = 0
-    Heart3 = 1
-    Heart4 = 2
-    Heart5 = 3
-    Heart6 = 4
-    Heart7 = 5
-    Heart8 = 6
-    Heart9 = 7
-    Heart10 = 8
-    HeartJack = 9
-    HeartQueen = 10
-    HeartKing = 11
-    HeartAce = 12
-    Diamond2 = 13
-    Diamond3 = 14
-    Diamond4 = 15
-    Diamond5 = 16
-    Diamond6 = 17
-    Diamond7 = 18
-    Diamond8 = 19
-    Diamond9 = 20
-    Diamond10 = 21
-    DiamondJack = 22
-    DiamondQueen = 23
-    DiamondKing = 24
-    DiamondAce = 25
-    Club2 = 26
-    Club3 = 27
-    Club4 = 28
-    Club5 = 29
-    Club6 = 30
-    Club7 = 31
-    Club8 = 32
-    Club9 = 33
-    Club10 = 34
-    ClubJack = 35
-    ClubQueen = 36
-    ClubKing = 37
-    ClubAce = 38
-    Spade2 = 39
-    Spade3 = 40
-    Spade4 = 41
-    Spade5 = 42
-    Spade6 = 43
-    Spade7 = 44
-    Spade8 = 45
-    Spade9 = 46
-    Spade10 = 47
-    SpadeJack = 48
-    SpadeQueen = 49
-    SpadeKing = 50
-    SpadeAce = 51
+    Spade2 = 0
+    Spade3 = 1
+    Spade4 = 2
+    Spade5 = 3
+    Spade6 = 4
+    Spade7 = 5
+    Spade8 = 6
+    Spade9 = 7
+    Spade10 = 8
+    SpadeJack = 9
+    SpadeQueen = 10
+    SpadeKing = 11
+    SpadeAce = 12
+    Club2 = 13
+    Club3 = 14
+    Club4 = 15
+    Club5 = 16
+    Club6 = 17
+    Club7 = 18
+    Club8 = 19
+    Club9 = 20
+    Club10 = 21
+    ClubJack = 22
+    ClubQueen = 23
+    ClubKing = 24
+    ClubAce = 25
+    Diamond2 = 26
+    Diamond3 = 27
+    Diamond4 = 28
+    Diamond5 = 29
+    Diamond6 = 30
+    Diamond7 = 31
+    Diamond8 = 32
+    Diamond9 = 33
+    Diamond10 = 34
+    DiamondJack = 35
+    DiamondQueen = 36
+    DiamondKing = 37
+    DiamondAce = 38
+    Heart2 = 39
+    Heart3 = 40
+    Heart4 = 41
+    Heart5 = 42
+    Heart6 = 43
+    Heart7 = 44
+    Heart8 = 45
+    Heart9 = 46
+    Heart10 = 47
+    HeartJack = 48
+    HeartQueen = 49
+    HeartKing = 50
+    HeartAce = 51
+
+
+def same_suit(card1: Card, card2: Card) -> bool:
+    """Return True if 2 Card belong to the same suit."""
+    return card1 // CARDS_PER_SUIT == card2 // CARDS_PER_SUIT
+
+
+def beats(card1: Card,
+          card2: Card,
+          first_card_in_trick: Card,
+          trump: typing.Optional[Card] = None) -> bool:
+    """Return True if card1 beats card2."""
+    if trump is not None:
+        if same_suit(card1, trump) and same_suit(card2, trump):
+            return card1 > card2
+        elif same_suit(card1, trump):
+            return True
+        elif same_suit(card2, trump):
+            return False
+        else:
+            # Neither card is from the same suit as the trump card:
+            # the comparison rules apply as if there was no trump
+            # card:
+            return beats(card1, card2, first_card_in_trick, trump=None)
+    else:
+        if (same_suit(card1, first_card_in_trick) and
+                same_suit(card2, first_card_in_trick)):
+            return card1 > card2
+        elif same_suit(card1, first_card_in_trick):
+            return True
+        elif same_suit(card2, first_card_in_trick):
+            return False
+        elif same_suit(card1, card2):
+            return card1 > card2
+        else:
+            # This case does not really matter (except maybe to sort
+            # the player's hand for display purposes).  When looking
+            # for the winning card in a trick, the first card of the
+            # trick will always trivially satisfy 'same_suit(card1,
+            # first_card_in_trick)' and hence be compared with the
+            # next cards and so on, looking for the maximum.
+            return card1 > card2
 
 
 class Round:
     """A Round deals the cards, handles the bidding and playing process."""
+
+    @enum.unique
+    class State(enum.Enum):
+        """States of a Round."""
+
+        BIDDING = enum.auto()
+        PLAYING = enum.auto()
+        DONE = enum.auto()
 
     def __init__(self,
                  confirmed_players: typing.List[Player],
@@ -222,6 +295,7 @@ class Round:
             raise ValueError("how_many_cards must be > 0")
         self._current_player = 0
         self._current_trick = []
+        self._state = Round.State.BIDDING
 
     @property
     def current_player(self) -> Player:
@@ -234,7 +308,23 @@ class Round:
 
     def place_bid(self, player: Player, bid: int) -> None:
         """Call from player to notify that she placed a bid."""
-        pass
+        self._ensure_state(Round.State.BIDDING)
+        self._ensure_current_player(player, "bid")
+        self._current_player += 1
+        if self._current_player >= len(self._players):
+            self._current_player = 0
+            self._state = Round.State.PLAYING
+
+    def _ensure_state(self, desired_state):
+        if self._state != desired_state:
+            raise IllegalStateError(
+                f"Round is in {self._state}, not in {desired_state}")
+
+    def _ensure_current_player(self, player, operation):
+        if player is not self.current_player:
+            raise OutOfTurnError(operation,
+                                 current_player=self.current_player,
+                                 offending_player=player)
 
     def deal_cards(self, how_many_cards):
         """Shuffle cards and tell each player what cards he has."""
