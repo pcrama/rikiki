@@ -57,6 +57,8 @@ class Player:
 a Round."""
         self._round = None
         """Reference to the Round the Player is currently participating in."""
+        self._tricks = 0
+        """How many tricks the Player has already won in a Round."""
 
     @property
     def name(self) -> str:
@@ -118,6 +120,23 @@ a Round."""
         else:
             self._confirmed_name = confirmed_name
 
+    @property
+    def tricks(self) -> int:
+        """Return how many tricks the player took in this Round."""
+        return self._tricks
+
+    def add_trick(self) -> None:
+        """Increment trick count, called by Round for winner of the trick."""
+        self._ensure_confirmed()
+        self._ensure_has_bid()
+        self._tricks += 1
+
+    @property
+    def card_count(self) -> int:
+        """Return the number of cards in the Player's hand."""
+        self._ensure_has_cards()
+        return len(self._cards)
+
     def accept_cards(
             self,
             round_: typing.ForwardRef("Round"),
@@ -150,7 +169,7 @@ a Round."""
         self._ensure_confirmed()
         self._ensure_has_cards()
         self._ensure_has_bid()
-        self._cards.remove(card)
+        self._cards.remove(card)  # raises exception if card not in list
         self._round.play_card(self, card)
         return card
 
@@ -289,12 +308,12 @@ class Round:
             raise ValueError(
                 "Can't create Round without at least 2 players, all confirmed")
         if (how_many_cards > 0
-                and (how_many_cards * len(confirmed_players)) < MAX_CARDS):
+                and (how_many_cards * len(confirmed_players)) <= MAX_CARDS):
             self.deal_cards(how_many_cards)
         else:
-            raise ValueError("how_many_cards must be > 0")
-        self._current_player = 0
-        self._current_trick = []
+            raise ValueError(
+                "how_many_cards must be > 0 but not too large either")
+        self._init_new_trick(0)  # start with first player
         self._state = Round.State.BIDDING
 
     @property
@@ -302,9 +321,52 @@ class Round:
         """Return Player whose turn it is."""
         return self._players[self._current_player]
 
-    def play_card(self, player: Player, card) -> None:
+    def play_card(self, player: Player, card: Card) -> None:
         """Call from player to notify that she put a card down."""
-        pass
+        self._ensure_state(Round.State.PLAYING)
+        self._ensure_current_player(player, "play")
+        # TODO: it would be nice to test that all players always have
+        # a consistent number of cards... but code would be
+        # complicated & hard to test
+
+        # track who wins the trick
+        if len(self._current_trick) == 0:
+            self._first_card = card
+            self._trick_winner = self._current_player
+            self._trick_winner_card = card
+        elif beats(card,
+                   self._trick_winner_card,
+                   first_card_in_trick=self._first_card,
+                   trump=self._trump):
+            self._trick_winner = self._current_player
+            self._trick_winner_card = card
+
+        self._current_trick.append(card)
+        # advance to next player
+        self._current_player = (self._current_player + 1) % len(self._players)
+        # check if trick is complete:
+        if len(self._current_trick) >= len(self._players):
+            # trick is complete: every player put her card down on the
+            # table, attribute the trick to the winner
+            self._players[self._trick_winner].add_trick()
+            # check if Round is complete:
+            if any(p.card_count == 0 for p in self._players):
+                # At the end of the Round, all players must have no
+                # cards left:
+                if any(p.card_count != 0 for p in self._players):
+                    raise IllegalStateError(
+                        "Not all players have played all their cards")
+                self._state = Round.State.DONE
+            else:
+                # Round is not complete, prepare for next trick
+                self._init_new_trick(self._trick_winner)
+
+    def _init_new_trick(self, first_player: int) -> None:
+        self._current_player = first_player
+        self._current_trick = []
+        self._first_card = None
+        self._trick_winner = None
+        self._trick_winner_card = None
 
     def place_bid(self, player: Player, bid: int) -> None:
         """Call from player to notify that she placed a bid."""
@@ -333,3 +395,10 @@ class Round:
         for (i, p) in enumerate(self._players):
             p.accept_cards(
                 self, cards[(i * how_many_cards):((i + 1) * how_many_cards)])
+        trump_idx = how_many_cards * len(self._players)
+        self._trump = None if trump_idx >= MAX_CARDS else cards[trump_idx]
+
+    @property
+    def trump(self) -> typing.Optional[Card]:
+        """Return trump card."""
+        return self._trump

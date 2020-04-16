@@ -25,7 +25,7 @@ def new_player():
     return Player(PROVISIONAL_NAME, "secret id")
 
 
-@pytest.fixture()
+@pytest.fixture
 def confirmed_player(new_player):
     """Fixture: Return a new Player who confirmed her name."""
     new_player.confirm(CONFIRMED_NAME)

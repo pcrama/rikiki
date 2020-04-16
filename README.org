@@ -120,6 +120,7 @@ A round is part of a game: in a round
   P1 --> R : play_card
   A2 --> P2 : play_card
   P2 --> R : play_card
+  R --> P1 : add_trick
   R --> G : round_finished  
 #+END_SRC
 
@@ -132,9 +133,11 @@ is responsible for maintaining his bid.
 #+BEGIN_SRC plantuml :file doc/models_round_state_diagram.png
   hide empty description
   left to right direction
-  [*] --> bidding : _~_init~_~_ with\n//n// confirmed players\nand //m// cards per player
-  bidding --> playing : //n// times\nplace_bid
-  playing --> done : //n * m// times\nplay_card
+  [*] --> bidding : _~_init~_~_ with  //n//\nconfirmed players,\n//m// cards per player
+  bidding --> bidding : //n - 1// times\nplace_bid
+  bidding --> playing : //n//th time\nplace_bid
+  playing --> playing : //n * m - 1// times\nplay_card
+  playing --> done : //n * m//th time\nplay_card
   done --> [*]
 #+END_SRC
 

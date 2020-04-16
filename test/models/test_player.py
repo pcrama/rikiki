@@ -52,6 +52,10 @@ def test_Player__init__no_bid_placed(new_player):
     assert not new_player.has_bid
 
 
+def test_Player__init__has_no_tricks(new_player):
+    assert new_player.tricks == 0
+
+
 def test_Player__unconfirmed__takes_provisional_name_with_None(new_player):
     new_player.confirm(None)
     assert new_player._confirmed_name == PROVISIONAL_NAME
@@ -74,6 +78,25 @@ def test_Player__confirmed_without_cards__will_not_bid(new_player):
         new_player.place_bid(2)
     assert excinfo.value.args[0].startswith(CONFIRMED_NAME)
     assert PROVISIONAL_NAME in excinfo.value.args[0]
+
+
+def test_Player__confirmed_accepting_cards__has_right_amount_of_cards(
+        confirmed_player):
+    round_ = mock_round()
+    confirmed_player.accept_cards(round_, [1, 2, 3])
+    assert confirmed_player.card_count == 3
+
+
+def test_Player__confirmed_accepting_cards__resets_trick_count(
+        confirmed_player):
+    round_ = mock_round()
+    confirmed_player.accept_cards(round_, [1])
+    confirmed_player.place_bid(1)
+    confirmed_player.play_card(1)
+    confirmed_player.add_trick()
+    assert confirmed_player.tricks == 1, "Test setup failed"
+    confirmed_player.accept_cards(round_, [1, 2, 3])
+    confirmed_player.add_trick()
 
 
 def test_Player__confirmed_with_cards__will_not_bid_more_than_amount_of_cards(
@@ -117,10 +140,11 @@ def test_Player__confirmed_with_cards__will_not_play_before_bidding(
 def test_Player__confirmed_with_cards__will_play_one_of_his_cards(
         mock_round_with_players):
     (round_, [player_with_cards, *_]) = mock_round_with_players
+    before = player_with_cards.card_count
     player_with_cards.place_bid(2)
-    before = len(player_with_cards._cards)
+    assert player_with_cards.card_count == before
     assert player_with_cards.play_card(2) == 2
-    assert len(player_with_cards._cards) + 1 == before
+    assert player_with_cards.card_count + 1 == before
     assert 2 not in player_with_cards._cards
     round_.play_card.assert_called_with(player_with_cards, 2)
 
@@ -129,3 +153,23 @@ def test_Player__confirmed_with_cards_and_bid__will_play_only_his_cards(
         player_with_cards_and_bid):
     with pytest.raises(ValueError) as excinfo:
         player_with_cards_and_bid.play_card(101)
+
+
+def test_Player__confirmed_with_cards_and_bid__will_accept_trick_attribution(
+        player_with_cards_and_bid):
+    # Start at 0
+    assert player_with_cards_and_bid.tricks == 0
+    player_with_cards_and_bid.add_trick()
+    assert player_with_cards_and_bid.tricks == 1
+    player_with_cards_and_bid.add_trick()
+    assert player_with_cards_and_bid.tricks == 2
+
+
+def test_Player__init__accepts_no_tricks(new_player):
+    with pytest.raises(IllegalStateError):
+        new_player.add_trick()
+
+
+def test_Player__confirmed_without_cards__accepts_no_trick(confirmed_player):
+    with pytest.raises(IllegalStateError):
+        confirmed_player.add_trick()
