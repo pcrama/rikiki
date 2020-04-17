@@ -37,6 +37,74 @@ def _ensure_non_blank(s, name, message=None):
         raise ValueError(msg)
 
 
+class Game:
+    """Handle confirming of the players and sequencing the rounds."""
+
+    @enum.unique
+    class State(enum.Enum):
+        """States of a Game."""
+
+        CONFIRMING = enum.auto()
+        PLAYING = enum.auto()
+        DONE = enum.auto()
+
+    def __init__(self, players: typing.List[typing.ForwardRef("Player")]):
+        self._players = players
+        """List of players invited to the Game."""
+        self._state = Game.State.CONFIRMING
+        """Game state."""
+        self._confirmed_players = []
+        """List of players that had confirmed their participation before Game started."""
+
+    def start_game(self) -> "Round":
+        """Start first Round of the Game."""
+        self._ensure_state(Game.State.CONFIRMING)
+        confirmed_players = [
+            player for player in self.players if player.is_confirmed]
+        if len(confirmed_players) < 2:
+            raise IllegalStateError("At least 2 confirmed players necessary")
+        self._state = Game.State.PLAYING
+        self._confirmed_players = confirmed_players
+        self._current_card_count = MAX_CARDS // len(confirmed_players)
+        return Round(self, self._current_card_count)
+
+    def _ensure_state(self, state: typing.ForwardRef("Game.State")) -> None:
+        if self._state != state:
+            raise IllegalStateError(
+                f"Expected {state} for game, not {self._state}")
+
+    @property
+    def players(self) -> typing.List[typing.ForwardRef("Player")]:
+        return self._players
+
+    @property
+    def confirmed_players(self) -> typing.List[typing.ForwardRef("Player")]:
+        return self._confirmed_players
+
+    @property
+    def round(self) -> typing.ForwardRef("Round"):
+        self._ensure_state(Game.State.PLAYING)
+        return self._round
+
+    @property
+    def current_card_count(self) -> int:
+        self._ensure_state(Game.State.PLAYING)
+        return self._current_card_count
+
+    @property
+    def state(self) -> typing.ForwardRef("Game.State"):
+        return self._state
+
+    def round_finished(self) -> None:
+        """Called by a Round when all cards have been played."""
+        self._ensure_state(Game.State.PLAYING)
+        self._current_card_count -= 1
+        if self._current_card_count > 0:
+            self._round = Round(self, self._current_card_count)
+        else:
+            self._state = Game.State.DONE
+
+
 class Player:
     """Participant in the game."""
 
@@ -298,9 +366,10 @@ class Round:
         DONE = enum.auto()
 
     def __init__(self,
-                 confirmed_players: typing.List[Player],
+                 game: Game,
                  how_many_cards: int):
         """Create new instance with confirmed participating Players."""
+        confirmed_players = game.confirmed_players
         if (len(confirmed_players) > 1
                 and all(p.is_confirmed for p in confirmed_players)):
             self._players = confirmed_players
@@ -313,6 +382,7 @@ class Round:
         else:
             raise ValueError(
                 "how_many_cards must be > 0 but not too large either")
+        self._game = game
         self._init_new_trick(0)  # start with first player
         self._state = Round.State.BIDDING
 
@@ -357,6 +427,7 @@ class Round:
                     raise IllegalStateError(
                         "Not all players have played all their cards")
                 self._state = Round.State.DONE
+                self._game.round_finished()
             else:
                 # Round is not complete, prepare for next trick
                 self._init_new_trick(self._trick_winner)

@@ -69,6 +69,44 @@ dealt and the game proceeds.
 - There is 1! organizer and 1! game.
 ** Classes
 *** Models
+**** Game
+The Game is responsible for
+- handling the confirming of the players,
+- sequencing the Rounds: in Rikiki, the number of cards
+  dealt is reduced by 1 at each step.
+
+#+BEGIN_SRC plantuml :file doc/models_game_sequence_diagram.png
+  actor Organizer as O
+  actor "P 1" as A1
+  actor "P 2" as A2
+  actor "P 3" as A3
+  actor "P 4" as A4
+  actor "P 5" as A5
+  participant Game as G
+  participant "Player1" as P1
+  participant "Player2" as P2
+  participant "Player3" as P3
+  participant "Player4" as P4
+  participant "Round 1" as R1
+  participant "Round 2" as R2
+  G --> P1 : _~_init~_~_
+  G --> P2 : _~_init~_~_
+  A1 --> P1 : confirm
+  A2 --> P2 : confirm
+  A4 --> P4 : confirm
+  A5 --> P5 : confirm
+  O --> G : start_game
+  G --> R1 : _~_init~_~_([P1, P2, P4, P5], 13)
+  ... play one Round with 13 cards ...
+  R1 --> G : round_finished  
+  G --> R2 : _~_init~_~_([P1, P2, P4, P5], 12)
+  ... play one Round with 12 cards ...
+  R2 --> G : round_finished  
+#+END_SRC
+
+#+RESULTS:
+[[file:doc/models_game_sequence_diagram.png]]
+
 **** Player
 #+BEGIN_SRC plantuml :file doc/models_player_state_diagram.png
   left to right direction
@@ -104,11 +142,6 @@ A round is part of a game: in a round
   participant "Player2" as P2
   participant Game as G
   participant Round as R
-  G --> P1 : _~_init~_~_
-  G --> P2 : _~_init~_~_
-  A1 --> P1 : confirm
-  A2 --> P2 : confirm
-  O --> G : start_game
   G --> R : _~_init~_~_
   R --> P1 : accept_cards
   R --> P2 : accept_cards

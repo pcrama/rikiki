@@ -4,6 +4,7 @@ import pytest
 
 from app.models import (
     Card,
+    Game,
     IllegalStateError,
     MAX_CARDS,
     ModelError,
@@ -25,42 +26,58 @@ def mock_confirmed_players():
 
 @pytest.fixture
 def round_with_mock_confirmed_players(mock_confirmed_players):
-    return Round(mock_confirmed_players, 3)
+    game = mock_game()
+    game.configure_mock(confirmed_players=mock_confirmed_players)
+    return Round(game, 3)
 
 
 @pytest.fixture
 def round_with_bids_placed(mock_confirmed_players):
     HOW_MANY_CARDS = 2
-    round_ = Round(mock_confirmed_players, HOW_MANY_CARDS)
+    game = mock_game()
+    game.configure_mock(confirmed_players=mock_confirmed_players)
+    round_ = Round(game, HOW_MANY_CARDS)
     for player in mock_confirmed_players:
         round_.place_bid(player, HOW_MANY_CARDS)
         player.configure_mock(card_count=HOW_MANY_CARDS)
-    return (round_, mock_confirmed_players)
+    return (game, round_, mock_confirmed_players)
+
+
+def make_round_with_players_list(players, how_many_cards=3):
+    game = mock_game()
+    game.configure_mock(confirmed_players=players)
+    return (game, Round(game, how_many_cards))
 
 
 def test_Round__init__validates_Players(confirmed_player):
+    game = mock_game()
+    # I.e. a bug in Game, but Round double-checks
+    game.configure_mock(
+        confirmed_players=[confirmed_player,
+                           Player("Other player", "other secret")])
     with pytest.raises(ValueError):
-        Round([confirmed_player, Player("Other player", "other secret")], 3)
+        Round(game, 3)
 
 
 def test_Round__init__validates_Player_count(confirmed_player):
     with pytest.raises(ValueError):
-        Round([confirmed_player], 3)
+        make_round_with_players_list([confirmed_player])
 
 
-def test_Round__init_0_cards_to_deal__raises(confirmed_player):
+def test_Round__init_0_cards_to_deal__raises(mock_confirmed_players):
     with pytest.raises(ValueError):
-        Round([confirmed_player], 0)
+        make_round_with_players_list(mock_confirmed_players, how_many_cards=0)
 
 
-def test_Round__init_too_many_cards_to_deal__raises(confirmed_player):
+def test_Round__init_too_many_cards_to_deal__raises(mock_confirmed_players):
     with pytest.raises(ValueError):
-        Round([confirmed_player], 53)
+        make_round_with_players_list(mock_confirmed_players, 53)
 
 
 def test_Round__init__deals_cards(mock_confirmed_players):
     HOW_MANY_CARDS = 5
-    round_ = Round(mock_confirmed_players, HOW_MANY_CARDS)
+    (_, round_) = make_round_with_players_list(
+        mock_confirmed_players, how_many_cards=HOW_MANY_CARDS)
     observed_deck = set()  # all cards must be different from each other
     for m in mock_confirmed_players:
         assert len(m.accept_cards.mock_calls) == 1
@@ -80,18 +97,21 @@ def test_Round__deal_cards__sets_trump_card(
         mock_confirmed_players):
     assert len(mock_confirmed_players) < MAX_CARDS, \
         f"This test only works if there are less than {MAX_CARDS} players"
-    round_ = Round(mock_confirmed_players, 1)
+    (_, round_) = make_round_with_players_list(
+        mock_confirmed_players, how_many_cards=1)
     assert round_.trump is not None
 
 
 def test_Round__deal_cards__sets_no_trump_card_when_evenly_divided():
-    round_ = Round([mock_player() for _ in range(4)], 13)
+    (_, round_) = make_round_with_players_list(
+        [mock_player() for _ in range(4)], 13)
     assert round_.trump is None
 
 
 def test_Round__place_bid__validates_bid_origin(
         mock_confirmed_players):
-    round_ = Round(mock_confirmed_players, 5)
+    (_, round_) = make_round_with_players_list(
+        mock_confirmed_players, how_many_cards=5)
     for player in mock_confirmed_players:
         # before player has placed a bit, no other player may bid
         for other_player in mock_confirmed_players:
@@ -113,7 +133,8 @@ def test_Round__place_bid__validates_bid_origin(
 
 def test_Round__place_bid__goes_to_playing_state_after_last_bid(
         mock_confirmed_players):
-    round_ = Round(mock_confirmed_players, 5)
+    (_, round_) = make_round_with_players_list(
+        mock_confirmed_players, how_many_cards=5)
     for player in mock_confirmed_players:
         round_.place_bid(player, 3)
     assert round_.current_player is mock_confirmed_players[0]
@@ -133,7 +154,7 @@ def test_Round__play_card__validates_state(round_with_mock_confirmed_players):
 
 def test_Round__play_card__validates_card_count_of_all_players_at_end_of_round(
         round_with_bids_placed):
-    (round_, mock_confirmed_players) = round_with_bids_placed
+    (_, round_, mock_confirmed_players) = round_with_bids_placed
     for player in mock_confirmed_players:
         player.configure_mock(
             card_count=1 if player is mock_confirmed_players[0] else 0)
@@ -150,7 +171,7 @@ def test_Round__play_card__validates_card_count_of_all_players_at_end_of_round(
 
 def test_Round__play_card__validates_player(
         round_with_bids_placed):
-    (round_, mock_confirmed_players) = round_with_bids_placed
+    (_, round_, mock_confirmed_players) = round_with_bids_placed
     assert round_._state == Round.State.PLAYING
     for player in mock_confirmed_players:
         for other_player in mock_confirmed_players:
@@ -167,7 +188,8 @@ def test_Round__play_card__attributes_trick_after_all_played(
         mock_confirmed_players):
     HOW_MANY_CARDS = 3
     players = mock_confirmed_players[:3]
-    round_ = Round(players, HOW_MANY_CARDS)
+    (_, round_) = make_round_with_players_list(
+        players, how_many_cards=HOW_MANY_CARDS)
     for p in players:
         p.configure_mock(card_count=HOW_MANY_CARDS)
         round_.place_bid(p, 1)
@@ -191,7 +213,7 @@ def test_Round__play_card__attributes_trick_after_all_played(
 
 def test_Round__play_card__goes_to_DONE_state_after_last_card(
         round_with_bids_placed):
-    (round_, mock_confirmed_players) = round_with_bids_placed
+    (game, round_, mock_confirmed_players) = round_with_bids_placed
     assert round_._state == Round.State.PLAYING, \
         "Invalid initial state for test"
     for _ in range(mock_confirmed_players[0].card_count):
@@ -200,11 +222,12 @@ def test_Round__play_card__goes_to_DONE_state_after_last_card(
                 card_count=player.card_count - 1)
             round_.play_card(player, Card.HeartAce)
     assert round_._state == Round.State.DONE
+    game.round_finished.assert_called_with()
 
 
 def test_Round__full_scenario(mock_confirmed_players):
     players = mock_confirmed_players[:3]
-    round_ = Round(players, 2)
+    (game, round_) = make_round_with_players_list(players, how_many_cards=2)
     assert round_.trump is not None
     # Simulate placing bids
     for p in players:
@@ -229,3 +252,4 @@ def test_Round__full_scenario(mock_confirmed_players):
     mock_play_card(players[0], Card.DiamondAce, 0)
     players[0].add_trick.assert_called_with()
     assert round_._state == Round.State.DONE
+    game.round_finished.assert_called_with()
