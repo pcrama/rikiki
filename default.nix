@@ -25,6 +25,7 @@ stdenv.mkDerivation rec {
       ] ++ (if lib.inNixShell
             then [
                     autopep8
+                    mypy
                     pydocstyle
                     pytest
                     pytest-flask
@@ -36,6 +37,6 @@ stdenv.mkDerivation rec {
 
   # Customizable development shell setup
   shellHook = ''
-    # set environment variables or run scripts
+    export PATH="$PWD/scripts:$PATH"
   '';
 }

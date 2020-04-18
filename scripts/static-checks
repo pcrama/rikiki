@@ -1,0 +1,5 @@
+#!/bin/sh
+rootdir="$(dirname "$(dirname "$(realpath "$0")")")"
+pycodestyle "$rootdir/app/"
+pydocstyle "$rootdir/app/"
+mypy "$rootdir/app/"

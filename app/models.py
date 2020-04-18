@@ -1,7 +1,7 @@
 """Model classes (the M in MVC)."""
 import enum
 import random
-import typing
+from typing import (List, Optional)
 
 
 class ModelError(RuntimeError):
@@ -48,13 +48,14 @@ class Game:
         PLAYING = enum.auto()
         DONE = enum.auto()
 
-    def __init__(self, players: typing.List[typing.ForwardRef("Player")]):
+    def __init__(self, players: List["Player"]):
+        """Create new Game instance."""
         self._players = players
         """List of players invited to the Game."""
         self._state = Game.State.CONFIRMING
         """Game state."""
-        self._confirmed_players = []
-        """List of players that had confirmed their participation before Game started."""
+        self._confirmed_players: List["Player"] = []
+        """List of players that had confirmed before Game started."""
 
     def start_game(self) -> "Round":
         """Start first Round of the Game."""
@@ -66,37 +67,43 @@ class Game:
         self._state = Game.State.PLAYING
         self._confirmed_players = confirmed_players
         self._current_card_count = MAX_CARDS // len(confirmed_players)
-        return Round(self, self._current_card_count)
+        self._round = Round(self, self._current_card_count)
+        return self._round
 
-    def _ensure_state(self, state: typing.ForwardRef("Game.State")) -> None:
+    def _ensure_state(self, state: "Game.State") -> None:
         if self._state != state:
             raise IllegalStateError(
                 f"Expected {state} for game, not {self._state}")
 
     @property
-    def players(self) -> typing.List[typing.ForwardRef("Player")]:
+    def players(self) -> List["Player"]:
+        """Return list of Player's invited to the Game."""
         return self._players
 
     @property
-    def confirmed_players(self) -> typing.List[typing.ForwardRef("Player")]:
+    def confirmed_players(self) -> List["Player"]:
+        """Return list of Player's that confirmed their participation."""
         return self._confirmed_players
 
     @property
-    def round(self) -> typing.ForwardRef("Round"):
+    def round(self) -> "Round":
+        """Return Round that is currently being played."""
         self._ensure_state(Game.State.PLAYING)
         return self._round
 
     @property
     def current_card_count(self) -> int:
+        """Return number of cards with which current Round is being played."""
         self._ensure_state(Game.State.PLAYING)
         return self._current_card_count
 
     @property
-    def state(self) -> typing.ForwardRef("Game.State"):
+    def state(self) -> "Game.State":
+        """Return current Game.State."""
         return self._state
 
     def round_finished(self) -> None:
-        """Called by a Round when all cards have been played."""
+        """Call from Round when all cards have been played."""
         self._ensure_state(Game.State.PLAYING)
         self._current_card_count -= 1
         if self._current_card_count > 0:
@@ -116,14 +123,14 @@ class Player:
         """The display name of the Player as proposed by the Organizer."""
         self._secret_id = secret_id
         """A random string, will be used to authenticate the link."""
-        self._confirmed_name = None
+        self._confirmed_name: Optional[str] = None
         """The name the Player chose for himself."""
-        self._cards = []
+        self._cards: List["Card"] = []
         """The Player's hand"""
-        self._bid = None
+        self._bid: Optional[int] = None
         """The Player's bid: how much tricks does she believe she will make in
 a Round."""
-        self._round = None
+        self._round: Optional["Round"] = None
         """Reference to the Round the Player is currently participating in."""
         self._tricks = 0
         """How many tricks the Player has already won in a Round."""
@@ -152,7 +159,7 @@ a Round."""
         return self.is_confirmed and self._bid is not None
 
     @property
-    def bid(self) -> typing.Optional[int]:
+    def bid(self) -> Optional[int]:
         """Return how many tricks the Player believes she is going to win."""
         return self._bid
 
@@ -160,6 +167,9 @@ a Round."""
         """Announce how many tricks the Player believes she is going to win."""
         self._ensure_confirmed()
         self._ensure_has_cards()
+        assert self._round is not None, \
+            ("_ensure_has_cards() should already do that, "
+             "but mypy does not see it")
         if 0 <= value <= len(self._cards):
             self._bid = value
             self._round.place_bid(self, value)
@@ -207,8 +217,8 @@ a Round."""
 
     def accept_cards(
             self,
-            round_: typing.ForwardRef("Round"),
-            cards: typing.List[int]
+            round_: "Round",
+            cards: List[Card]
     ) -> None:
         """Accept the cards that the Round has dealt."""
         self._ensure_confirmed()
@@ -320,7 +330,7 @@ def same_suit(card1: Card, card2: Card) -> bool:
 def beats(card1: Card,
           card2: Card,
           first_card_in_trick: Card,
-          trump: typing.Optional[Card] = None) -> bool:
+          trump: Optional[Card] = None) -> bool:
     """Return True if card1 beats card2."""
     if trump is not None:
         if same_suit(card1, trump) and same_suit(card2, trump):
@@ -383,12 +393,19 @@ class Round:
             raise ValueError(
                 "how_many_cards must be > 0 but not too large either")
         self._game = game
+        # type hints for mypy, but initialized by _init_new_trick
+        self._current_player: int
+        self._current_trick: List[Card]
+        self._first_card: Optional[Card]
+        self._trick_winner: Optional[int]
+        self._trick_winner_card: Optional[Card]
         self._init_new_trick(0)  # start with first player
         self._state = Round.State.BIDDING
 
     @property
     def current_player(self) -> Player:
         """Return Player whose turn it is."""
+        assert self._current_player is not None
         return self._players[self._current_player]
 
     def play_card(self, player: Player, card: Card) -> None:
@@ -404,18 +421,26 @@ class Round:
             self._first_card = card
             self._trick_winner = self._current_player
             self._trick_winner_card = card
-        elif beats(card,
-                   self._trick_winner_card,
-                   first_card_in_trick=self._first_card,
-                   trump=self._trump):
-            self._trick_winner = self._current_player
-            self._trick_winner_card = card
+        else:
+            assert (self._trick_winner_card is not None
+                    and self._first_card is not None), \
+                ("reassure mypy, these are set in the other branch"
+                 "before getting here")
+            if beats(card,
+                     self._trick_winner_card,
+                     first_card_in_trick=self._first_card,
+                     trump=self._trump):
+                self._trick_winner = self._current_player
+                self._trick_winner_card = card
 
         self._current_trick.append(card)
         # advance to next player
         self._current_player = (self._current_player + 1) % len(self._players)
         # check if trick is complete:
         if len(self._current_trick) >= len(self._players):
+            assert self._trick_winner is not None, \
+                ("reassure mypy, self._trick_winner should always "
+                 "be initialized when we get here")
             # trick is complete: every player put her card down on the
             # table, attribute the trick to the winner
             self._players[self._trick_winner].add_trick()
@@ -470,6 +495,6 @@ class Round:
         self._trump = None if trump_idx >= MAX_CARDS else cards[trump_idx]
 
     @property
-    def trump(self) -> typing.Optional[Card]:
+    def trump(self) -> Optional[Card]:
         """Return trump card."""
         return self._trump
