@@ -107,6 +107,20 @@ The Game is responsible for
 #+RESULTS:
 [[file:doc/models_game_sequence_diagram.png]]
 
+#+BEGIN_SRC plantuml :file doc/models_game_state_diagram.png
+  hide empty description
+  left to right direction
+  [*] --> confirming : _~_init~_~_
+  confirming --> playing : start_game
+  playing --> paused_between_rounds : round_finished
+  paused_between_rounds --> playing : start_next_round
+  paused_between_rounds -> done
+  done --> [*]
+#+END_SRC
+
+#+RESULTS:
+[[file:doc/models_game_state_diagram.png]]
+
 **** Player
 #+BEGIN_SRC plantuml :file doc/models_player_state_diagram.png
   left to right direction
@@ -160,8 +174,7 @@ A round is part of a game: in a round
 #+RESULTS:
 [[file:doc/models_player_round_sequence_diagram.png]]
 
-The ~Round~ maintains the trick count for all players, but each Player
-is responsible for maintaining his bid.
+The ~Round~ only maintains the cards on the table of the current trick.
 
 #+BEGIN_SRC plantuml :file doc/models_round_state_diagram.png
   hide empty description

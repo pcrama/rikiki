@@ -2,4 +2,4 @@
 ;;; For more information see (info "(emacs) Directory Variables")
 
 ((python-mode
-  (compile-command . "pytest")))
+  (compile-command . "all-checks")))

@@ -46,6 +46,7 @@ class Game:
 
         CONFIRMING = enum.auto()
         PLAYING = enum.auto()
+        PAUSED_BETWEEN_ROUNDS = enum.auto()
         DONE = enum.auto()
 
     def __init__(self, players: List["Player"]):
@@ -94,8 +95,14 @@ class Game:
     @property
     def current_card_count(self) -> int:
         """Return number of cards with which current Round is being played."""
-        self._ensure_state(Game.State.PLAYING)
-        return self._current_card_count
+        if self.state in [
+                Game.State.PLAYING, Game.State.PAUSED_BETWEEN_ROUNDS]:
+            return self._current_card_count
+        elif self.state == Game.State.CONFIRMING:
+            raise IllegalStateError(
+                f"Game.state={self.state}, current_card_count is undefined.")
+        else:
+            return 0
 
     @property
     def state(self) -> "Game.State":
@@ -105,8 +112,14 @@ class Game:
     def round_finished(self) -> None:
         """Call from Round when all cards have been played."""
         self._ensure_state(Game.State.PLAYING)
+        self._state = Game.State.PAUSED_BETWEEN_ROUNDS
+
+    def start_next_round(self) -> None:
+        """Call to confirm previous Round is finished and start next Round."""
+        self._ensure_state(Game.State.PAUSED_BETWEEN_ROUNDS)
         self._current_card_count -= 1
         if self._current_card_count > 0:
+            self._state = Game.State.PLAYING
             self._round = Round(self, self._current_card_count)
         else:
             self._state = Game.State.DONE
@@ -212,19 +225,25 @@ a Round."""
     @property
     def card_count(self) -> int:
         """Return the number of cards in the Player's hand."""
-        self._ensure_has_cards()
         return len(self._cards)
+
+    @property
+    def cards(self) -> List["Card"]:
+        """Return cards in the Player's hand."""
+        return self._cards
 
     def accept_cards(
             self,
             round_: "Round",
-            cards: List[Card]
+            cards: List["Card"]
     ) -> None:
         """Accept the cards that the Round has dealt."""
         self._ensure_confirmed()
         if self._round is None or self._cards == []:
             self._round = round_
             self._cards = cards
+            self._tricks = 0
+            self._bid = None
         else:
             raise IllegalStateError(f"{self} can't change game round now")
 
@@ -233,8 +252,7 @@ a Round."""
             raise IllegalStateError(f"{self} not confirmed yet")
 
     def _ensure_has_cards(self) -> None:
-        if (self._cards is None or self._cards == []
-                or self._round is None):
+        if self._cards == [] or self._round is None:
             raise IllegalStateError(
                 f"{self} has no cards or not in a round")
 
@@ -247,8 +265,17 @@ a Round."""
         self._ensure_confirmed()
         self._ensure_has_cards()
         self._ensure_has_bid()
-        self._cards.remove(card)  # raises exception if card not in list
-        self._round.play_card(self, card)
+        if card in self._cards:
+            self._cards.remove(card)
+            try:
+                self._round.play_card(self, card)
+            except Exception as e:
+                # card was not accepted on table, restore player's hand ...
+                self._cards.append(card)
+                # ... but do not lose the exception
+                raise
+        else:
+            raise IllegalStateError(f"{self} does not hold {card} in her hand")
         return card
 
 
@@ -325,6 +352,20 @@ class Card(enum.IntEnum):
 def same_suit(card1: Card, card2: Card) -> bool:
     """Return True if 2 Card belong to the same suit."""
     return card1 // CARDS_PER_SUIT == card2 // CARDS_PER_SUIT
+
+
+def card_allowed(
+        card: Card, hand: List[Card] = [], table: List[Card] = [], trump: Optional[Card] = None):
+    if card not in hand:  # must hold the card to play it
+        return False
+    if table == []:
+        return True  # anything goes on an empty table
+    first_card = table[0]
+    if same_suit(first_card, card):
+        return True  # following suit of starting card is always
+    # playing a different suit allowed than first card on table is
+    # only allowed if no other card is present in Player's hand:
+    return not any(same_suit(first_card, c) for c in hand)
 
 
 def beats(card1: Card,

@@ -1,6 +1,6 @@
 import pytest
 
-from app.models import (Card, beats, same_suit)
+from app.models import (Card, beats, card_allowed, same_suit)
 
 
 def test_same_suit__examples():
@@ -113,3 +113,31 @@ def test_beats__trump__examples():
                  first_card_in_trick=Card.DiamondJack, trump=Card.Spade10)
     assert beats(Card.Heart6, Card.Heart5,
                  first_card_in_trick=Card.Club6, trump=Card.DiamondJack)
+
+
+def test_card_allowed__examples():
+    # Anything is allowed as first card on the table
+    assert card_allowed(Card.Heart2,
+                        hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce],
+                        table=[],
+                        trump=None)
+    # Must follow suit of first played card, with or without trump
+    for trump in [
+            None, Card.Heart10, Card.Diamond8, Card.ClubQueen, Card.Spade3]:
+        assert card_allowed(
+            Card.Heart2,
+            hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce, Card.ClubAce],
+            table=[Card.HeartQueen],
+            trump=trump)
+        assert not card_allowed(
+            Card.Heart2,
+            hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce, Card.ClubAce],
+            table=[Card.Diamond8],
+            trump=trump)
+    # If unable to follow suit of first card, anything is allowed
+    hand = [Card.Diamond7, Card.SpadeAce, Card.ClubAce]
+    for card in hand:
+        assert card_allowed(
+            card, hand=hand, table=[Card.HeartQueen], trump=None)
+        assert card_allowed(
+            card, hand=hand, table=[Card.HeartQueen], trump=Card.Spade8)
