@@ -2,7 +2,9 @@ import unittest.mock as mock
 
 import pytest
 
-from app.models import (Card, IllegalStateError, OutOfTurnError, Player, Round)
+from app.models import (CARDS_PER_SUIT, Card, CardNotAllowedError,
+                        IllegalStateError, MAX_CARDS, OutOfTurnError,
+                        Player, Round)
 
 from .helpers import *
 
@@ -161,8 +163,23 @@ def test_Player__confirmed_with_cards_and_bid__will_play_only_his_cards(
         mock_round_with_players):
     (round_, [player, *_]) = mock_round_with_players
     player.place_bid(1)
-    with pytest.raises(IllegalStateError) as excinfo:
+    with pytest.raises(CardNotAllowedError) as excinfo:
         player.play_card(101)
+    round_.play_card.assert_not_called()
+
+
+def test_Player__confirmed_with_cards_and_bid__will_play_according_to_rules(
+        mock_round_with_players):
+    (round_, [player, *_]) = mock_round_with_players
+    player.place_bid(1)
+    player._cards = [Card.Heart10, Card.Spade7, Card.ClubQueen]
+    round_.configure_mock(
+        current_trick=[Card.Heart4, Card.Spade8])
+    with pytest.raises(CardNotAllowedError) as excinfo:
+        player.play_card(Card.Spade7)
+    round_.play_card.assert_not_called()
+    with pytest.raises(CardNotAllowedError) as excinfo:
+        player.play_card(Card.ClubQueen)
     round_.play_card.assert_not_called()
 
 

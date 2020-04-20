@@ -9,6 +9,7 @@ from app.models import (
     ModelError,
     OutOfTurnError,
     Player,
+    PlayerRetryableError,
     Round,
 )
 
@@ -159,7 +160,13 @@ def test_Game__full_scenario():
             for p in full_range[idx:(idx + len(confirmed_players))]:
                 assert p.card_count == game.current_card_count - cards_played
                 print(f" [{p}{p.card_count}", end="")
-                p.play_card(p._cards[0])
+                for c in p.cards:
+                    try:
+                        p.play_card(c)
+                    except PlayerRetryableError:
+                        pass
+                    else:
+                        break
                 print(f"→{p.card_count}]", end="")
                 if game.current_card_count > cards_played + 1:
                     assert p.card_count == game.current_card_count - cards_played - 1

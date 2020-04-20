@@ -178,7 +178,7 @@ def test_Round__play_card__validates_player(
             if other_player is not player:
                 with pytest.raises(OutOfTurnError):
                     round_.play_card(other_player, Card.Diamond10)
-        player.configure_mock(  # simulate plater.play_card
+        player.configure_mock(  # simulate player.play_card
             card_count=player.card_count - 1)
         round_.play_card(player, Card.ClubAce)
     assert round_._state == Round.State.PLAYING
@@ -199,16 +199,20 @@ def test_Round__play_card__attributes_trick_after_all_played(
             card_count=p.card_count - 1)
         round_.play_card(p, card)
 
+    assert round_.current_trick == []
     mock_player_plays_card(players[0], Card.Heart3)
+    assert round_.current_trick == [Card.Heart3]
     for p in players:
         p.add_trick.assert_not_called()
     mock_player_plays_card(players[1], Card.Heart10)
+    assert round_.current_trick == [Card.Heart3, Card.Heart10]
     for p in players:
         p.add_trick.assert_not_called()
     mock_player_plays_card(players[2], Card.Heart7)
     players[0].add_trick.assert_not_called()
     players[1].add_trick.assert_called_with()
     players[2].add_trick.assert_not_called()
+    assert round_.current_trick == []  # Round automatically starts a new trick
 
 
 def test_Round__play_card__goes_to_DONE_state_after_last_card(

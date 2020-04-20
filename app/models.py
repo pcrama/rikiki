@@ -16,7 +16,22 @@ class IllegalStateError(ModelError):
     pass
 
 
-class OutOfTurnError(ModelError):
+class PlayerRetryableError(ModelError):
+    """A Player tried to do something forbidden, but may retry."""
+
+    pass
+
+
+class CardNotAllowedError(PlayerRetryableError):
+    """A Player tried to play a card but forbidden by rules."""
+
+    def __init__(self, offending_player, offending_card):
+        """Create new CardNotallowederror."""
+        self.offending_player = offending_player
+        self.offending_card = offending_card
+
+
+class OutOfTurnError(PlayerRetryableError):
     """A Player tried to place a bid or play a card outside his turn."""
 
     def __init__(self, operation, current_player, offending_player):
@@ -265,7 +280,8 @@ a Round."""
         self._ensure_confirmed()
         self._ensure_has_cards()
         self._ensure_has_bid()
-        if card in self._cards:
+        if card_allowed(
+                card, hand=self.cards, table=self._round.current_trick):
             self._cards.remove(card)
             try:
                 self._round.play_card(self, card)
@@ -275,7 +291,8 @@ a Round."""
                 # ... but do not lose the exception
                 raise
         else:
-            raise IllegalStateError(f"{self} does not hold {card} in her hand")
+            raise CardNotAllowedError(
+                offending_player=self, offending_card=card)
         return card
 
 
@@ -354,8 +371,8 @@ def same_suit(card1: Card, card2: Card) -> bool:
     return card1 // CARDS_PER_SUIT == card2 // CARDS_PER_SUIT
 
 
-def card_allowed(
-        card: Card, hand: List[Card] = [], table: List[Card] = [], trump: Optional[Card] = None):
+def card_allowed(card: Card, hand: List[Card] = [], table: List[Card] = []):
+    """Check if a Card may be played."""
     if card not in hand:  # must hold the card to play it
         return False
     if table == []:
@@ -448,6 +465,11 @@ class Round:
         """Return Player whose turn it is."""
         assert self._current_player is not None
         return self._players[self._current_player]
+
+    @property
+    def current_trick(self) -> List[Card]:
+        """Return cards currently on the table."""
+        return self._current_trick
 
     def play_card(self, player: Player, card: Card) -> None:
         """Call from player to notify that she put a card down."""

@@ -119,25 +119,18 @@ def test_card_allowed__examples():
     # Anything is allowed as first card on the table
     assert card_allowed(Card.Heart2,
                         hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce],
-                        table=[],
-                        trump=None)
+                        table=[])
     # Must follow suit of first played card, with or without trump
-    for trump in [
-            None, Card.Heart10, Card.Diamond8, Card.ClubQueen, Card.Spade3]:
-        assert card_allowed(
-            Card.Heart2,
-            hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce, Card.ClubAce],
-            table=[Card.HeartQueen],
-            trump=trump)
-        assert not card_allowed(
-            Card.Heart2,
-            hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce, Card.ClubAce],
-            table=[Card.Diamond8],
-            trump=trump)
+    assert card_allowed(
+        Card.Heart2,
+        hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce, Card.ClubAce],
+        table=[Card.HeartQueen])
+    assert not card_allowed(
+        Card.Heart2,
+        hand=[Card.Heart2, Card.Diamond7, Card.SpadeAce, Card.ClubAce],
+        table=[Card.Diamond8])
     # If unable to follow suit of first card, anything is allowed
     hand = [Card.Diamond7, Card.SpadeAce, Card.ClubAce]
     for card in hand:
         assert card_allowed(
-            card, hand=hand, table=[Card.HeartQueen], trump=None)
-        assert card_allowed(
-            card, hand=hand, table=[Card.HeartQueen], trump=Card.Spade8)
+            card, hand=hand, table=[Card.HeartQueen])
