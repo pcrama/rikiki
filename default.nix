@@ -38,5 +38,8 @@ stdenv.mkDerivation rec {
   # Customizable development shell setup
   shellHook = ''
     export PATH="$PWD/scripts:$PATH"
+    export FLASK_APP="app"
+    export FLASK_ENV="development"
+    export FLASK_DEBUG=1
   '';
 }
