@@ -1,6 +1,8 @@
 #+TITLE: Rikiki Card Game Web Application
 #+AUTHOR: Philippe Crama
 
+[[https://repl.it/github/pcrama/rikiki][https://repl.it/badge/github/pcrama/rikiki.svg]]
+
 * Introduction
 Rikiki is a card game I played as a child.  This web application must allow to
 play together over the internet.

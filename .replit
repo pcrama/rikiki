@@ -1,0 +1,2 @@
+language = "python3"
+run = "FLASK_APP=app FLASK_ENV=production python3 -m flask run --port 3000 --host 0.0.0.0"
