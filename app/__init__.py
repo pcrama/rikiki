@@ -26,12 +26,8 @@ def create_app(config_name):
                    else os.environ.get("FLASK_ENV", "development")])
     APP.register_error_handler(404, page_not_found)
     APP.register_error_handler(403, access_denied)
-    from . import controllers
-    APP.add_url_rule('/organizer/',
-                     view_func=controllers.organizer,
-                     methods=('GET', 'POST',))
-    APP.add_url_rule('/organizer/<organizer_secret>/',
-                     view_func=controllers.organizer)
+    from . import organizer
+    APP.register_blueprint(organizer.bp)
     with APP.test_request_context():
         log_organizer_secret_to_console()
     return APP

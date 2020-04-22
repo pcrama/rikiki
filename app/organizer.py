@@ -1,13 +1,20 @@
-"""Controllers (the C in MVC)."""
-from flask import abort, flash, redirect, render_template, request
+"""Controllers for the organizer."""
+
+import functools
+
+from flask import Blueprint, abort, flash, redirect, render_template, request
 
 from . import ORGANIZER_SECRET, GAME
 
+bp = Blueprint('organizer', __name__, url_prefix='/organizer')
 
+
+@bp.route('/', methods=('GET', 'POST',))
+@bp.route('/<organizer_secret>/')
 def organizer(organizer_secret=''):
     """Control Game model for the organizer."""
     def render(playerlist):
-        return render_template('organizer.html',
+        return render_template('organizer/organizer.html',
                                playerlist=playerlist,
                                organizer_secret=ORGANIZER_SECRET)
 

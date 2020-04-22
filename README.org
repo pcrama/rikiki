@@ -191,3 +191,7 @@ The ~Round~ only maintains the cards on the table of the current trick.
 
 #+RESULTS:
 [[file:doc/models_round_state_diagram.png]]
+
+*** Controllers
+**** Organizer
+***** Set up a new game
