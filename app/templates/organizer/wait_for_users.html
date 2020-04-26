@@ -10,7 +10,7 @@
   updateTimer = setTimeout(
       updatePlayerStatus,
       1000 /* milliseconds */,
-      "{{ url_for('organizer.api_game_status', organizer_secret=organizer_secret) }}");
+      {{ url_for('organizer.api_game_status', organizer_secret=organizer_secret)|tojson }});
 </script>
   <ul>
     {% for player in players %}

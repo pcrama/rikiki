@@ -36,8 +36,6 @@ async function updatePlayerStatus(status_url) {
         if (li) {
             li.style = "color: #00ff00;";
             li.children[0].textContent = data.players[p];
-        } else {
-            console.log(`Where is ${li}?`);
         }
     }
     updateTimer = setTimeout(updatePlayerStatus, 1000 /* milliseconds */, status_url);

@@ -1,12 +1,11 @@
 """Controllers for the organizer."""
 
 import functools
-import json
 import os
 from typing import List, Optional, Set
 
-from flask import (Blueprint, abort, current_app, flash,
-                   redirect, render_template, request)
+from flask import (Blueprint, abort, current_app, flash, json,
+                   redirect, render_template, request, url_for)
 
 from . import models
 
@@ -41,9 +40,8 @@ def organizer(organizer_secret=''):
         current_app.create_game(
             [models.Player(p, "".join(f"{x:02X}" for x in os.urandom(16)))
              for p in player_names])
-        return render_template('organizer/wait_for_users.html',
-                               organizer_secret=organizer_secret,
-                               players=current_app.game.players)
+        return redirect(url_for('organizer.wait_for_users',
+                                organizer_secret=organizer_secret))
     else:
         if organizer_secret != current_app.organizer_secret:
             abort(403)
@@ -81,7 +79,7 @@ def wait_for_users(organizer_secret: str):
 
 
 @bp.route('start_game/', methods=('POST',))
-def start_game(organizer_secret: str):
+def start_game():
     """Start the first round of the game at organizer's request."""
     return b"start the game", 200
 

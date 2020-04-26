@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block title %}{{ player.name }}{% endblock %}
+{% block header %}?{% endblock %}
+
+{% block content %}
+  <!-- !!player.player!1598872951605016181!! -->
+  {% if game.state == game.State.CONFIRMING %}
+    <p>Please wait for the organizer to start the game.</p>
+  {% else %}
+    <p>Not implemented yet.</p>
+  {% endif %}
+{% endblock %}

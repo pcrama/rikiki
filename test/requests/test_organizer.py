@@ -110,18 +110,18 @@ def test_wait_for_users_with_correct_organizer_secret(rikiki_app, client, game):
         assert p.id.encode('ascii') in response.data
 
 
-def test_api_game_status__no_game_started__get_returns_404(rikiki_app, client):
+def test_api_game_status__no_game_created__get_returns_404(rikiki_app, client):
     response = client.get(
         f'/organizer/{rikiki_app.organizer_secret}/api/game_status/')
     assert response.status_code == 404
 
 
-def test_api_game_status__game_started_wrong_secret__get_returns_404(client, game):
+def test_api_game_status__game_created_wrong_secret__get_returns_404(client, game):
     response = client.get('/organizer/wrong_secret/api/game_status/')
     assert response.status_code == 403
 
 
-def test_api_game_status__game_started__get_returns_json(rikiki_app, client, game):
+def test_api_game_status__game_created__get_returns_json(rikiki_app, client, game):
     response = client.get(
         f'/organizer/{rikiki_app.organizer_secret}/api/game_status/')
     assert response.status_code == 200

@@ -120,6 +120,16 @@ def test_Game__player_by_id__returns_player(new_game_with_confirmed_players):
             'this public ID does not exist')
 
 
+def test_Game__player_by_secret_id__returns_player(new_game_with_confirmed_players):
+    for p in new_game_with_confirmed_players.players:
+        by_id = new_game_with_confirmed_players.player_by_secret_id(
+            p.secret_id)
+        assert p is by_id
+    with pytest.raises(StopIteration):
+        new_game_with_confirmed_players.player_by_secret_id(
+            'this public ID does not exist')
+
+
 def test_Game__full_scenario():
     PLAYER_DOES_NOT_SHOW_UP = 3
     players = [Player(f"P{i}", f"Secret {i}") for i in range(5)]

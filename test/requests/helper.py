@@ -51,5 +51,7 @@ def rendered_template(response, t):
         'organizer': b'!!organizer!-810856715183258229!!',
         'wait_for_users': b'!!wait_for_users!-1517857306451128469!!',
         'player.confirm': b'!!player.confirm!1473724732052034803!!',
+        'player.player': b'!!player.player!1598872951605016181!!',
+        'player.too-late': b'!!player.too-late!-1938575116592361607!!',
     }[t]
     return marker in response.data

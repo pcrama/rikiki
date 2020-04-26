@@ -103,6 +103,10 @@ class Game:
         """Look up a Player by her public ID."""
         return next(p for p in self._players if p.id == _id)
 
+    def player_by_secret_id(self, secret_id) -> "Player":
+        """Look up a Player by her secret ID."""
+        return next(p for p in self._players if p.secret_id == secret_id)
+
     @property
     def confirmed_players(self) -> List["Player"]:
         """Return list of Player's that confirmed their participation."""
@@ -486,7 +490,6 @@ class Round:
     @property
     def current_player(self) -> Player:
         """Return Player whose turn it is."""
-        assert self._current_player is not None
         return self._players[self._current_player]
 
     @property
