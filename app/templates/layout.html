@@ -1,15 +1,22 @@
 <!doctype html>
-<title>Rikiki</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<nav>
-  <h1>Rikiki - {% block title %}{% endblock %}</h1>
-</nav>
-<section class="content">
-  <header>
-    <h2>{% block header %}{% endblock %}</h2>
-  </header>
-  {% for category, message in get_flashed_messages(with_categories=true) %}
-    <div class="flash {{category}}">{{ message }}</div>
-  {% endfor %}
-  {% block content %}{% endblock %}
-</section>
+<html>
+  <head>
+    <title>Rikiki</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script type="text/javascript" src="{{ url_for('static', filename='scripts.js') }}"></script>
+  </head>
+  <body>
+    <nav>
+      <h1>Rikiki - {% block title %}{% endblock %}</h1>
+    </nav>
+    <section class="content">
+      <header>
+        <h2>{% block header %}{% endblock %}</h2>
+      </header>
+      {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="flash {{category}}">{{ message }}</div>
+      {% endfor %}
+      {% block content %}{% endblock %}
+    </section>
+  </body>
+</html>

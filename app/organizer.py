@@ -1,6 +1,7 @@
 """Controllers for the organizer."""
 
 import functools
+import json
 import os
 from typing import List, Optional, Set
 
@@ -40,7 +41,7 @@ def organizer(organizer_secret=''):
         current_app.create_game(
             [models.Player(p, "".join(f"{x:02X}" for x in os.urandom(16)))
              for p in player_names])
-        return render_template('organizer/game_dashboard.html',
+        return render_template('organizer/wait_for_users.html',
                                organizer_secret=organizer_secret,
                                players=current_app.game.players)
     else:
@@ -68,13 +69,13 @@ def parse_playerlist(playerlist: str) -> List[str]:
     return result
 
 
-@bp.route('game_dashboard/<organizer_secret>/')
-def game_dashboard(organizer_secret: str):
+@bp.route('wait_for_users/<organizer_secret>/')
+def wait_for_users(organizer_secret: str):
     """Present a dashboard for the game to the organizer."""
     if organizer_secret != current_app.organizer_secret:
         abort(403)
     else:
-        return render_template('organizer/game_dashboard.html',
+        return render_template('organizer/wait_for_users.html',
                                organizer_secret=organizer_secret,
                                players=current_app.game.players)
 
@@ -83,3 +84,25 @@ def game_dashboard(organizer_secret: str):
 def start_game(organizer_secret: str):
     """Start the first round of the game at organizer's request."""
     return b"start the game", 200
+
+
+@bp.route('/<organizer_secret>/api/game_status/')
+def api_game_status(organizer_secret):
+    """Return Game status for AJAX API."""
+    if current_app.organizer_secret != organizer_secret:
+        abort(403)
+    try:
+        game = current_app.game
+    except RuntimeError:
+        abort(404)
+    return json.dumps(
+        {'players': {p.id: p.name
+                     for p
+                     in (game.confirmed_players
+                         if game.state != game.state.CONFIRMING
+                         # in CONFIRMING game.state, players are still
+                         # adding themselves, game.confirmed_players
+                         # is not valid yet.
+                         else (_p for _p in game.players if _p.is_confirmed))},
+         'state': game.state
+         }).encode('utf-8')

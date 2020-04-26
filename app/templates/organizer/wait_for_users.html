@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Wait for users{% endblock %}
+{% block header %}Start the Rikiki game once all players have joined.{% endblock %}
+
+{% block content %}
+  <!-- !!wait_for_users!-1517857306451128469!! -->
+<script language="javascript">
+  window.onload = hostify_urls;
+  // poll periodically to update player status
+  updateTimer = setTimeout(
+      updatePlayerStatus,
+      1000 /* milliseconds */,
+      "{{ url_for('organizer.api_game_status', organizer_secret=organizer_secret) }}");
+</script>
+  <ul>
+    {% for player in players %}
+    <li id="{{ player.id }}"><span>{{ player.name }}</span>: <span class="hostify">{{
+        url_for('player.confirm', secret_id=player.secret_id, _method='GET')
+        }}</span></li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{{ url_for('organizer.start_game') }}" enctype="multipart/form-data">
+    <input type="hidden" value="{{ organizer_secret }}" id="organizer_secret" name="organizer_secret"/>
+    <input type="submit" value="Start Game"/>
+  </form>
+{% endblock %}

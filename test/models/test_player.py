@@ -1,6 +1,6 @@
 import unittest.mock as mock
 
-import pytest
+import pytest                   # type: ignore
 
 from app.models import (CARDS_PER_SUIT, Card, CardNotAllowedError,
                         IllegalStateError, MAX_CARDS, OutOfTurnError,
@@ -44,6 +44,11 @@ def test_Player__init__name_is_provisional_name(new_player):
 
 def test_Player__init__secret_id_is_recorded(new_player):
     assert new_player.secret_id == "secret id"
+
+
+def test_Player__init__id_is_recorded(new_player):
+    _id = new_player.id
+    assert _id != new_player.secret_id
 
 
 def test_Player__init__not_confirmed_yet(new_player):

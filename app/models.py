@@ -1,5 +1,6 @@
 """Model classes (the M in MVC)."""
 import enum
+import hashlib
 import random
 from typing import (List, Optional)
 
@@ -56,13 +57,15 @@ class Game:
     """Handle confirming of the players and sequencing the rounds."""
 
     @enum.unique
-    class State(enum.Enum):
+    class State(enum.IntEnum):
         """States of a Game."""
 
-        CONFIRMING = enum.auto()
-        PLAYING = enum.auto()
-        PAUSED_BETWEEN_ROUNDS = enum.auto()
-        DONE = enum.auto()
+        # Explicit values because the client code in the web browser
+        # needs them as well.
+        CONFIRMING: int = 0
+        PLAYING: int = 1
+        PAUSED_BETWEEN_ROUNDS: int = 2
+        DONE: int = 3
 
     def __init__(self, players: List["Player"]):
         """Create new Game instance."""
@@ -95,6 +98,10 @@ class Game:
     def players(self) -> List["Player"]:
         """Return list of Player's invited to the Game."""
         return self._players
+
+    def player_by_id(self, _id) -> "Player":
+        """Look up a Player by her public ID."""
+        return next(p for p in self._players if p.id == _id)
 
     @property
     def confirmed_players(self) -> List["Player"]:
@@ -140,6 +147,9 @@ class Game:
             self._state = Game.State.DONE
 
 
+PLAYER_COUNTER = 0
+
+
 class Player:
     """Participant in the game."""
 
@@ -151,6 +161,12 @@ class Player:
         """The display name of the Player as proposed by the Organizer."""
         self._secret_id = secret_id
         """A random string, will be used to authenticate the link."""
+        global PLAYER_COUNTER
+        PLAYER_COUNTER += 1
+        self._id = '{0}_{1}'.format(
+            PLAYER_COUNTER,
+            hashlib.md5(secret_id.encode('utf-8')).hexdigest())
+        """A random string, will be used as public ID in API."""
         self._confirmed_name: Optional[str] = None
         """The name the Player chose for himself."""
         self._cards: List["Card"] = []
@@ -175,6 +191,11 @@ a Round."""
     def secret_id(self) -> str:
         """Return the secret id of the Player."""
         return self._secret_id
+
+    @property
+    def id(self) -> str:
+        """Return the public id of the Player."""
+        return self._id
 
     @property
     def is_confirmed(self) -> bool:
@@ -426,12 +447,14 @@ class Round:
     """A Round deals the cards, handles the bidding and playing process."""
 
     @enum.unique
-    class State(enum.Enum):
+    class State(enum.IntEnum):
         """States of a Round."""
 
-        BIDDING = enum.auto()
-        PLAYING = enum.auto()
-        DONE = enum.auto()
+        # Explicit values because the client code in the web browser
+        # needs them as well.
+        BIDDING: int = 100
+        PLAYING: int = 101
+        DONE: int = 102
 
     def __init__(self,
                  game: Game,

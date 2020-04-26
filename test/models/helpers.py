@@ -1,7 +1,7 @@
 """Helper functions for model tests."""
 import unittest.mock as mock
 
-import pytest
+import pytest                   # type: ignore
 
 from app.models import (Game, Player, Round)
 

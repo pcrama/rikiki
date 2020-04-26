@@ -1,6 +1,7 @@
+import json
 import pytest  # type: ignore
 from flask import current_app
-import app  # type: ignore
+import app                      # type: ignore
 
 from app.organizer import parse_playerlist  # type: ignore
 
@@ -92,17 +93,62 @@ def test_parse_playerlist_filter_doubles():
         'riri', 'Fifi', 'LULU']
 
 
-def test_game_dashboard_with_wrong_organizer_secret(client):
-    response = client.get('/organizer/game_dashboard/wrong_secret',
+def test_wait_for_users_with_wrong_organizer_secret(client):
+    response = client.get('/organizer/wait_for_users/wrong_secret',
                           follow_redirects=True)
     assert response.status_code == 403
 
 
-def test_game_dashboard_with_correct_organizer_secret(rikiki_app, client, game):
+def test_wait_for_users_with_correct_organizer_secret(rikiki_app, client, game):
     response = client.get(
-        f'/organizer/game_dashboard/{rikiki_app.organizer_secret}',
+        f'/organizer/wait_for_users/{rikiki_app.organizer_secret}',
         follow_redirects=True)
     assert response.status_code == 200
     for p in game.players:
         assert p.name.encode('utf-8') in response.data
         assert p.secret_id.encode('ascii') in response.data
+        assert p.id.encode('ascii') in response.data
+
+
+def test_api_game_status__no_game_started__get_returns_404(rikiki_app, client):
+    response = client.get(
+        f'/organizer/{rikiki_app.organizer_secret}/api/game_status/')
+    assert response.status_code == 404
+
+
+def test_api_game_status__game_started_wrong_secret__get_returns_404(client, game):
+    response = client.get('/organizer/wrong_secret/api/game_status/')
+    assert response.status_code == 403
+
+
+def test_api_game_status__game_started__get_returns_json(rikiki_app, client, game):
+    response = client.get(
+        f'/organizer/{rikiki_app.organizer_secret}/api/game_status/')
+    assert response.status_code == 200
+    status = json.loads(response.data)
+    status_state = status['state']
+    assert status_state == app.models.Game.State.CONFIRMING
+    status_players = status['players']
+    assert len(status_players) == 0  # no players confirmed yet
+    with pytest.raises(KeyError):
+        status['current_card_count']
+
+    # confirm some players:
+    NEW_NAME = "new name"
+    CP1, CP2 = 0, -1
+    game.players[CP1].confirm(NEW_NAME)
+    game.players[CP2].confirm("")
+    response = client.get(
+        f'/organizer/{rikiki_app.organizer_secret}/api/game_status/')
+    assert response.status_code == 200
+    status = json.loads(response.data)
+    status_state = status['state']
+    assert status_state == app.models.Game.State.CONFIRMING
+    status_players = status['players']
+    assert len(status_players) == 2
+    assert game.players[CP1].id in status_players
+    assert game.players[CP2].id in status_players
+    assert status_players[game.players[CP1].id] == NEW_NAME
+    assert status_players[game.players[CP2].id] == game.players[CP2].name
+    with pytest.raises(KeyError):
+        status['current_card_count']
