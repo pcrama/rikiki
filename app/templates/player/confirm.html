@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block title %}Player{% endblock %}
+{% block header %}Confirm your participation{% endblock %}
+
+{% block content %}
+  <!-- !!player.confirm!1473724732052034803!! -->
+  <p>Please confirm your name</p>
+  <form method="post" action="{{ url_for('player.confirm') }}" enctype="multipart/form-data">
+    <input type="hidden" value="{{ secret_id }}" id="secret_id" name="secret_id"/>
+    <label for="player_name">Your Name</label>
+    <input type="text" id="player_name" name="player_name" autofocus="autofocus" value="{{ unconfirmed_name }}"/>
+    <input type="submit" value="Submit"/>
+  </form>
+{% endblock %}

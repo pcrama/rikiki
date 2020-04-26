@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block title %}Game Dashboard{% endblock %}
+{% block header %}Start the Rikiki game once all players have joined.{% endblock %}
+
+{% block content %}
+  <!-- !!game_dashboard!-1517857306451128469!! -->
+<script language="javascript">
+  // my deployment choice (repl.it for playing in family circle) means
+  // I am not too sure about what host my server will run on.  So I
+  // prepend it dynamically to the URL:
+  window.onload = (e) => {
+      console.log("window.onload", e, Date.now());
+      const urlPrefix = document.location.origin;
+      Array.from(document.getElementsByClassName("hostify")).forEach((item, index, array) => {
+          console.log("window.onload", Date.now(), item.innerHTML, index);
+          if (!item.innerHTML.startsWith(urlPrefix)) {
+              item.innerHTML = urlPrefix + item.innerHTML;
+          }
+      });
+  };
+</script>
+  <ul>
+    {% for player in players %}
+    <li>{{ player.name }}: <span class="hostify">{{ url_for('player.confirm', secret_id=player.secret_id, _method='GET') }}</span></li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{{ url_for('organizer.start_game') }}" enctype="multipart/form-data">
+    <input type="hidden" value="{{ organizer_secret }}" id="organizer_secret" name="organizer_secret"/>
+    <input type="submit" value="Start Game"/>
+  </form>
+{% endblock %}
