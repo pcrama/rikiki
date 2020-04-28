@@ -9,65 +9,67 @@ from helper import client, game, rendered_template, rikiki_app
 
 
 def test_organizer_get_with_wrong_secret(client):
-    response = client.get('/organizer/wrong_secret', follow_redirects=True)
+    response = client.get('/organizer/wrong_secret/setup/game',
+                          follow_redirects=True)
     assert response.status_code == 403
 
 
 def test_organizer_get_without_secret(client):
-    response = client.get('/organizer/')
+    response = client.get('/organizer/setup/game/')
     assert response.status_code == 405
-    response = client.get('/organizer', follow_redirects=True)
+    response = client.get('/organizer/setup/game', follow_redirects=True)
     assert response.status_code == 405
 
 
 def test_organizer_get_with_secret(rikiki_app, client):
     response = client.get(
-        f'/organizer/{rikiki_app.organizer_secret}', follow_redirects=True)
+        f'/organizer/{rikiki_app.organizer_secret}/setup/game', follow_redirects=True)
     assert response.status_code == 200
-    assert rendered_template(response, 'organizer')
-    response = client.get(f'/organizer/{rikiki_app.organizer_secret}/')
+    assert rendered_template(response, 'setup_game')
+    response = client.get(
+        f'/organizer/{rikiki_app.organizer_secret}/setup/game/')
     assert response.status_code == 200
 
 
 def test_organizer_post_with_secret_without_data(rikiki_app, client):
     response = client.post(
-        f'/organizer/', data={'organizer_secret': rikiki_app.organizer_secret})
+        f'/organizer/setup/game/', data={'organizer_secret': rikiki_app.organizer_secret})
     assert response.status_code == 200
-    assert rendered_template(response, 'organizer')
+    assert rendered_template(response, 'setup_game')
     assert b"No player list provided" in response.data
 
 
 def test_organizer_post_with_blank_playerlist(rikiki_app, client):
     response = client.post(
-        f'/organizer/', data={'organizer_secret': rikiki_app.organizer_secret,
-                              'playerlist': '  \n   \r\t'})
+        f'/organizer/setup/game/', data={'organizer_secret': rikiki_app.organizer_secret,
+                                         'playerlist': '  \n   \r\t'})
     assert response.status_code == 200
-    assert rendered_template(response, 'organizer')
+    assert rendered_template(response, 'setup_game')
     assert b"No player list provided" in response.data
 
 
 def test_organizer_post_with_overlong_playerlist(rikiki_app, client):
     response = client.post(
-        f'/organizer/', data={'organizer_secret': rikiki_app.organizer_secret,
-                              'playerlist': 'a' * 50000})
+        f'/organizer/setup/game/', data={'organizer_secret': rikiki_app.organizer_secret,
+                                         'playerlist': 'a' * 50000})
     assert response.status_code == 200
-    assert rendered_template(response, 'organizer')
+    assert rendered_template(response, 'setup_game')
     assert b"Player list too large" in response.data
 
 
 def test_organizer_post_with_too_many_players(rikiki_app, client):
     response = client.post(
-        '/organizer/', data={'organizer_secret': rikiki_app.organizer_secret,
-                             'playerlist': '\n'.join(f'P{i}' for i in range(27))})
+        '/organizer/setup/game/', data={'organizer_secret': rikiki_app.organizer_secret,
+                                        'playerlist': '\n'.join(f'P{i}' for i in range(27))})
     assert response.status_code == 200
-    assert rendered_template(response, 'organizer')
+    assert rendered_template(response, 'setup_game')
     assert b"Too many players" in response.data
 
 
 def test_organizer_post_with_players(rikiki_app, client):
     PLAYER_NAMES = ['riri', 'fifi', 'lulu']
     response = client.post(
-        '/organizer/',
+        '/organizer/setup/game/',
         data={'organizer_secret': rikiki_app.organizer_secret,
               'playerlist': '\n'.join(PLAYER_NAMES)},
         follow_redirects=True)
@@ -94,14 +96,14 @@ def test_parse_playerlist_filter_doubles():
 
 
 def test_wait_for_users_with_wrong_organizer_secret(client):
-    response = client.get('/organizer/wait_for_users/wrong_secret',
+    response = client.get('/organizer/wrong_secret/wait_for_users',
                           follow_redirects=True)
     assert response.status_code == 403
 
 
 def test_wait_for_users_with_correct_organizer_secret(rikiki_app, client, game):
     response = client.get(
-        f'/organizer/wait_for_users/{rikiki_app.organizer_secret}',
+        f'/organizer/{rikiki_app.organizer_secret}/wait_for_users/',
         follow_redirects=True)
     assert response.status_code == 200
     for p in game.players:

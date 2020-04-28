@@ -48,7 +48,7 @@ def game(rikiki_app):
 def rendered_template(response, t):
     """Return True if a template was rendered."""
     marker = {
-        'organizer': b'!!organizer!-810856715183258229!!',
+        'setup_game': b'!!setup_game!-810856715183258229!!',
         'wait_for_users': b'!!wait_for_users!-1517857306451128469!!',
         'player.confirm': b'!!player.confirm!1473724732052034803!!',
         'player.player': b'!!player.player!1598872951605016181!!',

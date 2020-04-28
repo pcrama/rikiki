@@ -12,14 +12,14 @@ from . import models
 bp = Blueprint('organizer', __name__, url_prefix='/organizer')
 
 
-@bp.route('/', methods=('POST',))
-@bp.route('/<organizer_secret>/')
-def organizer(organizer_secret=''):
+@bp.route('/setup/game/', methods=('POST',))
+@bp.route('/<organizer_secret>/setup/game/')
+def setup_game(organizer_secret=''):
     """Control Game model for the organizer."""
     def render(playerlist: str, error: Optional[str] = None):
         if error is not None:
             flash(error, 'error')
-        return render_template('organizer/organizer.html',
+        return render_template('organizer/setup_game.html',
                                playerlist=playerlist,
                                organizer_secret=current_app.organizer_secret)
     if request.method == 'POST':
@@ -67,7 +67,7 @@ def parse_playerlist(playerlist: str) -> List[str]:
     return result
 
 
-@bp.route('wait_for_users/<organizer_secret>/')
+@bp.route('/<organizer_secret>/wait_for_users/')
 def wait_for_users(organizer_secret: str):
     """Present a dashboard for the game to the organizer."""
     if organizer_secret != current_app.organizer_secret:
@@ -78,9 +78,14 @@ def wait_for_users(organizer_secret: str):
                                players=current_app.game.players)
 
 
-@bp.route('start_game/', methods=('POST',))
+@bp.route('/start_game/', methods=('POST',))
 def start_game():
     """Start the first round of the game at organizer's request."""
+    if request.method != 'POST':
+        abort(405)
+    organizer_secret = request.form.get('organizer_secret', '')
+    if organizer_secret != current_app.organizer_secret:
+        abort(403)
     return b"start the game", 200
 
 

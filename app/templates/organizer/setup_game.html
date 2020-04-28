@@ -3,9 +3,9 @@
 {% block header %}Setup a Rikiki game{% endblock %}
 
 {% block content %}
-  <!-- !!organizer!-810856715183258229!! -->
+  <!-- !!setup_game!-810856715183258229!! -->
   <p>Please input the players list</p>
-  <form method="post" action="{{ url_for('organizer.organizer') }}" enctype="multipart/form-data">
+  <form method="post" action="{{ url_for('organizer.setup_game') }}" enctype="multipart/form-data">
     <input type="hidden" value="{{ organizer_secret }}" id="organizer_secret" name="organizer_secret"/>
     <label for="playerlist">Player List</label>
     <textarea id="playerlist" name="playerlist" required="required" autofocus="autofocus" rows="10" cols="50">{{ playerlist }}</textarea>
