@@ -12,7 +12,7 @@ from . import models
 bp = Blueprint('organizer', __name__, url_prefix='/organizer')
 
 
-@bp.route('/', methods=('GET', 'POST',))
+@bp.route('/', methods=('POST',))
 @bp.route('/<organizer_secret>/')
 def organizer(organizer_secret=''):
     """Control Game model for the organizer."""

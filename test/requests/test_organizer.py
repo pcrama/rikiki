@@ -15,9 +15,9 @@ def test_organizer_get_with_wrong_secret(client):
 
 def test_organizer_get_without_secret(client):
     response = client.get('/organizer/')
-    assert response.status_code == 403
+    assert response.status_code == 405
     response = client.get('/organizer', follow_redirects=True)
-    assert response.status_code == 403
+    assert response.status_code == 405
 
 
 def test_organizer_get_with_secret(rikiki_app, client):
