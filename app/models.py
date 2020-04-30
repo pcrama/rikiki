@@ -169,7 +169,7 @@ class Player:
         PLAYER_COUNTER += 1
         self._id = '{0}_{1}'.format(
             PLAYER_COUNTER,
-            hashlib.md5(secret_id.encode('utf-8')).hexdigest())
+            hashlib.md5(secret_id.encode('utf-8')).hexdigest()[:8])
         """A random string, will be used as public ID in API."""
         self._confirmed_name: Optional[str] = None
         """The name the Player chose for himself."""
@@ -486,6 +486,11 @@ class Round:
         self._trick_winner_card: Optional[Card]
         self._init_new_trick(0)  # start with first player
         self._state = Round.State.BIDDING
+
+    @property
+    def state(self) -> State:
+        """Return Round's State."""
+        return self._state
 
     @property
     def current_player(self) -> Player:

@@ -5,7 +5,7 @@ import pytest  # type: ignore
 
 from app.organizer import parse_playerlist  # type: ignore
 
-from helper import client, first_player, game, rikiki_app, rendered_template
+from helper import FLASH_ERROR, client, first_player, game, rikiki_app, rendered_template
 
 
 def test_player_confirm__no_game_created_so_no_players__get_with_wrong_secret(
@@ -34,6 +34,7 @@ def test_player_confirm_game_exists__get_with_secret(first_player, client):
     response = client.get(
         f'/player/confirm/{first_player.secret_id}', follow_redirects=True)
     assert response.status_code == 200
+    assert FLASH_ERROR not in response.data
     assert rendered_template(response, 'player.confirm')
     response = client.get(
         f'/player/confirm/{first_player.secret_id}/')
@@ -60,8 +61,10 @@ def test_player_confirm__game_exists__post_valid_confirmation(first_player, clie
         data={'secret_id': first_player.secret_id, 'player_name': NEW_NAME},
         follow_redirects=True)
     assert response.status_code == 200
+    assert FLASH_ERROR not in response.data
     assert first_player.is_confirmed
     assert first_player.name == NEW_NAME
+    assert rendered_template(response, 'player.player')
 
 
 def test_player_confirm__game_started__renders_player_too_late(first_player, client, game):
@@ -83,18 +86,22 @@ def test_player_confirm__already_confirmed__redirects_to_player_dashboard(first_
               'confirmed_name': 'yet another name'},
         follow_redirects=True)
     assert response.status_code == 200
+    assert FLASH_ERROR in response.data
     assert first_player.name == 'already confirmed'
     assert rendered_template(response, 'player.player')
     response = client.get(
         f'/player/confirm/{first_player.secret_id}', follow_redirects=True)
     assert response.status_code == 200
     assert rendered_template(response, 'player.player')
+    assert FLASH_ERROR in response.data
 
 
 def test_player__player__validates_secret_id(first_player, client):
     first_player.confirm('needs to be confirmed')
     response = client.get('/player/wrong_secret/', follow_redirects=True)
     assert response.status_code == 403
+    response = client.get('/player/', follow_redirects=True)
+    assert response.status_code == 405
 
 
 def test_player__unconfirmed__redirects_to_confirmation(first_player, client):
@@ -102,3 +109,4 @@ def test_player__unconfirmed__redirects_to_confirmation(first_player, client):
         f'/player/{first_player.secret_id}/', follow_redirects=True)
     assert response.status_code == 200
     assert rendered_template(response, 'player.confirm')
+    assert FLASH_ERROR in response.data

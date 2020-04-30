@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block title %}Game Dashboard{% endblock %}
+{% block header %}Track the game's progress.{% endblock %}
+
+{% block content %}
+  <!-- !!organizer.dashboard!-1306330636811940615!! -->
+<script language="javascript">
+  window.onload = hostifyUrls;
+  // poll periodically to update player status
+  updateTimer = setTimeout(
+      updateGameStatusOrganizeDashboard,
+      1000 /* milliseconds */,
+      {{ url_for('organizer.api_game_status', organizer_secret=organizer_secret)|tojson }});
+</script>
+  <p>Game state=<span id="game-state"></span></p>
+  <ul>
+    {% for player in game.confirmed_players %}
+    <li>{{ player.name }} has <span id="{{ player.id }}-cards"></span> cards and bid <span id="{{ player.id }}-bid"></span> tricks:
+      <span class="hostify">{{ url_for('player.player', secret_id=player.secret_id, _method='GET') }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

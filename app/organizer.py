@@ -69,10 +69,16 @@ def parse_playerlist(playerlist: str) -> List[str]:
 
 @bp.route('/<organizer_secret>/wait_for_users/')
 def wait_for_users(organizer_secret: str):
-    """Present a dashboard for the game to the organizer."""
+    """Present a dashboard for the organizer to track Players joining."""
     if organizer_secret != current_app.organizer_secret:
         abort(403)
     else:
+        try:
+            game = current_app.game
+        except RuntimeError as e:
+            flash(str(e), 'error')
+            return redirect(url_for('organizer.setup_game',
+                                    organizer_secret=organizer_secret))
         return render_template('organizer/wait_for_users.html',
                                organizer_secret=organizer_secret,
                                players=current_app.game.players)
@@ -81,12 +87,37 @@ def wait_for_users(organizer_secret: str):
 @bp.route('/start_game/', methods=('POST',))
 def start_game():
     """Start the first round of the game at organizer's request."""
-    if request.method != 'POST':
-        abort(405)
     organizer_secret = request.form.get('organizer_secret', '')
     if organizer_secret != current_app.organizer_secret:
         abort(403)
-    return b"start the game", 200
+    try:
+        current_app.game.start_game()
+    except models.ModelError as e:
+        flash(f'Game not started: {e}', 'error')
+        return redirect(url_for('organizer.wait_for_users',
+                                organizer_secret=organizer_secret))
+    return redirect(url_for('organizer.dashboard',
+                            organizer_secret=organizer_secret))
+
+
+@bp.route('/<organizer_secret>/dashboard/')
+def dashboard(organizer_secret: str):
+    """View game play status."""
+    if organizer_secret != current_app.organizer_secret:
+        abort(403)
+    try:
+        game = current_app.game
+    except RuntimeError:
+        flash('Game has not been created yet.', 'error')
+        return redirect(url_for('organizer.setup_game',
+                                organizer_secret=organizer_secret))
+    if game.state == models.Game.State.CONFIRMING:
+        flash('Game has not been started yet.', 'error')
+        return redirect(url_for('organizer.wait_for_users',
+                                organizer_secret=organizer_secret))
+    return render_template('organizer/dashboard.html',
+                           organizer_secret=organizer_secret,
+                           game=current_app.game)
 
 
 @bp.route('/<organizer_secret>/api/game_status/')
@@ -98,14 +129,23 @@ def api_game_status(organizer_secret):
         game = current_app.game
     except RuntimeError:
         abort(404)
-    return json.dumps(
-        {'players': {p.id: p.name
-                     for p
-                     in (game.confirmed_players
-                         if game.state != game.state.CONFIRMING
-                         # in CONFIRMING game.state, players are still
-                         # adding themselves, game.confirmed_players
-                         # is not valid yet.
-                         else (_p for _p in game.players if _p.is_confirmed))},
-         'state': game.state
-         }).encode('utf-8')
+    result = {
+        'players': {p.id: (p.name
+                           if game.state == game.state.CONFIRMING
+                           else {'bid': p.bid,
+                                 'cards': p.card_count,
+                                 'name': p.name})
+                    for p
+                    in (game.confirmed_players
+                        if game.state != game.state.CONFIRMING
+                        # in CONFIRMING game.state, players are still
+                        # adding themselves, game.confirmed_players
+                        # is not valid yet.
+                        else (_p for _p in game.players if _p.is_confirmed))},
+        'state': game.state
+    }
+    if game.state == game.state.PLAYING:
+        result['currentCardCount'] = game.current_card_count
+        result['round'] = {'currentPlayer': game.round.current_player.id,
+                           'state': game.round.state}
+    return json.dumps(result).encode('utf-8')

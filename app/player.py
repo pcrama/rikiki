@@ -46,6 +46,7 @@ def confirm(secret_id='', game=None):
     """Render player confirmation page and handle confirmation process."""
     player = get_player(current_app, request, secret_id)
     if player.is_confirmed:
+        flash(f'Your name is already confirmed as {player.name}', 'error')
         return redirect(url_for('player.player',
                                 secret_id=player.secret_id,
                                 _method='GET'))
@@ -63,13 +64,14 @@ def confirm(secret_id='', game=None):
                                secret_id=secret_id)
 
 
-@bp.route('/', methods=('GET', 'POST',))
+@bp.route('/', methods=('POST',))
 @bp.route('/<secret_id>/')
 @with_valid_game
 def player(secret_id='', game=None):
     """Control Player model for the players."""
     player = get_player(current_app, request, secret_id)
     if not player.is_confirmed:
+        flash('You must confirm your participation first', 'error')
         return redirect(url_for('player.confirm',
                                 secret_id=player.secret_id,
                                 _method='GET'))

@@ -51,7 +51,7 @@ def log_organizer_secret_to_console(app):
     """Print the organizer secret link to the console."""
     if not app.testing:
         try:
-            url = flask.url_for('organizer.organizer',
+            url = flask.url_for('organizer.setup_game',
                                 organizer_secret=app.organizer_secret,
                                 _method='GET')
             print(f'Organizer URL: {url}')
