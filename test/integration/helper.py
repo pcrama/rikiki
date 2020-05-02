@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from contextlib import contextmanager
 
 import pytest  # type: ignore
@@ -31,9 +32,12 @@ def extract_player_dict(driver):
             }}</span></li>
         {% endfor %}
       </ul>
+
+    Returns OrderedDict mapping unconfirmed name to
+    (player.id, player url) tuple.
     """
     player_list = driver.find_element_by_id('player_list')
-    result = {}
+    result = OrderedDict()
     for player_li in player_list.find_elements_by_tag_name('li'):
         player_name = player_li.find_element_by_class_name('player_name')
         secret_player_url = player_li.find_element_by_class_name('hostify')
@@ -66,3 +70,25 @@ def temporary_new_tab(driver, url=None):
     driver.switch_to.window(tab_window)
     driver.close()
     driver.switch_to.window(main_window)
+
+
+class element_has_css_class:
+    """An expectation for checking that an element has a particular css class.
+
+    locator - used to find the element
+    returns the WebElement once it has the particular css class
+
+    From https://selenium-python.readthedocs.io/waits.html
+    """
+
+    def __init__(self, locator, css_class):
+        self.locator = locator
+        self.css_class = css_class
+
+    def __call__(self, driver):
+        # Finding the referenced element
+        element = driver.find_element(*self.locator)
+        if self.css_class in element.get_attribute("class").split(' '):
+            return element
+        else:
+            return False

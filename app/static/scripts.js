@@ -35,7 +35,7 @@ async function updatePlayerStatus(statusUrl) {
     for (p in data.players) {
         const li = document.getElementById(p);
         if (li && li.classList.contains(classToRemove)) {
-            li.classList.remove(classToRemove)
+            li.classList.remove(classToRemove);
             li.classList.add('confirmed_player');
             li.children[0].textContent = data.players[p];
         }
@@ -63,13 +63,16 @@ async function updateGameStatusOrganizeDashboard(statusUrl) {
     const round = data.round;
     const currentPlayer = round && round.currentPlayer;
     const roundState = round && round.state;
-    const normalPlayerStyle = "";
-    const currentPlayerStyle = "color: #00aa00;"
+    const currentPlayerClass = 'current_player'; // css class defined in style.css
     let totalBids = 0;
     for (pid in data.players) {
         const li = document.getElementById(pid);
         if (li) {
-            li.style = (pid == currentPlayer) ? currentPlayerStyle : normalPlayerStyle;
+            if (pid == currentPlayer && !li.classList.contains(currentPlayerClass)) {
+                li.classList.add(currentPlayerClass);
+            } else if (pid != currentPlayer && li.classList.contains(currentPlayerClass)) {
+                li.classList.remove('current_player');
+            }
         }
         const cardsSpan = document.getElementById(`${pid}-cards`);
         const bidSpan = document.getElementById(`${pid}-bid`);

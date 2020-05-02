@@ -15,7 +15,9 @@
   <p>Game state=<span id="game-state"></span></p>
   <ul>
     {% for player in game.confirmed_players %}
-    <li>{{ player.name }} has <span id="{{ player.id }}-cards"></span> cards and bid <span id="{{ player.id }}-bid"></span> tricks:
+    <li id="{{ player.id }}"><span id="{{ player.id }}-name">{{ player.name }}</span> has
+      <span id="{{ player.id }}-cards"></span> cards and bid
+      <span id="{{ player.id }}-bid"></span> tricks:
       <span class="hostify">{{ url_for('player.player', secret_id=player.secret_id, _method='GET') }}</span>
     </li>
     {% endfor %}
