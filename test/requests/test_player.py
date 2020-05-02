@@ -5,7 +5,7 @@ import pytest  # type: ignore
 
 from app.organizer import parse_playerlist  # type: ignore
 
-from helper import FLASH_ERROR, client, first_player, game, rikiki_app, rendered_template
+from .helper import FLASH_ERROR, client, first_player, game, rikiki_app, rendered_template
 
 
 def test_player_confirm__no_game_created_so_no_players__get_with_wrong_secret(

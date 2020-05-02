@@ -12,11 +12,12 @@
       1000 /* milliseconds */,
       {{ url_for('organizer.api_game_status', organizer_secret=organizer_secret)|tojson }});
 </script>
-  <ul>
+  <ul id="player_list">
     {% for player in players %}
-    <li id="{{ player.id }}"><span>{{ player.name }}</span>: <span class="hostify">{{
-        url_for('player.confirm', secret_id=player.secret_id, _method='GET')
-        }}</span></li>
+    <li class="unconfirmed_player" id="{{ player.id }}">
+      <span class="player_name">{{ player.name }}</span>:
+      <span class="hostify">{{ url_for('player.confirm', secret_id=player.secret_id, _method='GET') }}</span>
+    </li>
     {% endfor %}
   </ul>
   <form method="post" action="{{ url_for('organizer.start_game') }}" enctype="multipart/form-data">

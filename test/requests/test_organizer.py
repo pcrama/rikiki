@@ -5,7 +5,7 @@ import app                      # type: ignore
 
 from app.organizer import parse_playerlist  # type: ignore
 
-from helper import FLASH_ERROR, client, game, organizer_secret, rendered_template, rikiki_app, started_game
+from .helper import FLASH_ERROR, client, game, organizer_secret, rendered_template, rikiki_app, started_game
 
 
 def test_organizer_get_with_wrong_secret(client):

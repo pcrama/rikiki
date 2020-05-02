@@ -15,12 +15,12 @@ def create_app(config_name):
         def __init__(self, *args, **kwarg):
             super().__init__(*args, **kwarg)
             self._game: Optional[Game] = None
-            self._organizer_secret: str = "".join(
+            self.config['ORGANIZER_SECRET'] = "".join(
                 f"{x:02X}" for x in os.urandom(16))
 
         @property
         def organizer_secret(self) -> str:
-            return self._organizer_secret
+            return self.config['ORGANIZER_SECRET']
 
         @property
         def game(self) -> Game:

@@ -30,10 +30,22 @@ stdenv.mkDerivation rec {
                     pytest
                     pytest-flask
                     pytest-mock
+                    selenium
                  ]
             else []);
     })
-  ];
+  ] ++ (if lib.inNixShell
+        then [
+                # for selenium
+                #
+                # I also wanted to try chromedriver google-chrome
+                # (needs NIXPKGS_ALLOW_UNFREE=1)/chromium, but the
+                # driver & browser versions were mismatched and I did
+                # not want to spend more time fighting with Nix.
+                geckodriver
+                firefox
+             ]
+        else []);
 
   # Customizable development shell setup
   shellHook = ''

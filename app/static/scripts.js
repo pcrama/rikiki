@@ -31,13 +31,13 @@ async function updatePlayerStatus(statusUrl) {
         return -1;
     }
     const data = await response.json();
-    console.log(data)
+    const classToRemove = 'unconfirmed_player';
     for (p in data.players) {
         const li = document.getElementById(p);
-        console.log(`${p}: ${li}: ${data.players[p]}`);
-        if (li) {
-            li.style = "color: #00aa00;";
-            li.children[0].textContent = "✔ " + data.players[p];
+        if (li && li.classList.contains(classToRemove)) {
+            li.classList.remove(classToRemove)
+            li.classList.add('confirmed_player');
+            li.children[0].textContent = data.players[p];
         }
     }
     updateTimer = setTimeout(updatePlayerStatus, 1000 /* milliseconds */, statusUrl);
