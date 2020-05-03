@@ -4,10 +4,15 @@
 function hostifyUrls(_) {
     const urlPrefix = document.location.origin;
     Array.from(document.getElementsByClassName("hostify")).forEach((item, index, array) => {
-        if (!item.innerHTML.startsWith(urlPrefix)) {
-            item.innerHTML = urlPrefix + item.innerHTML;
+        if (!item.textContent.startsWith(urlPrefix)) {
+            item.textContent = urlPrefix + item.textContent;
+            item.onclick = function() { copyEventTargetText(this) };
         }
     });
+}
+
+function copyEventTargetText(target) {
+    navigator.clipboard.writeText(target.textContent);
 }
 
 const GAME_STATE_CONFIRMING = 0;
