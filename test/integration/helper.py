@@ -2,15 +2,23 @@ from collections import OrderedDict
 from contextlib import contextmanager
 
 import pytest  # type: ignore
+from flask import url_for
 from selenium import webdriver  # type: ignore
+from selenium.common.exceptions import NoSuchElementException  # type: ignore
+from selenium.webdriver.common.by import By  # type: ignore
+from selenium.webdriver.support import expected_conditions as EC  # type: ignore
+from selenium.webdriver.support.ui import WebDriverWait  # type: ignore
+
+INITIAL_PLAYER_NAMES = ['Attila', 'Hannibal', 'Chaos', 'Joker',
+                        'Neil', 'Douglas', 'Terry']
 
 # Fixture for Firefox
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def ff_driver():
     """Create a webdriver using Firefox."""
     from selenium.webdriver.firefox.options import Options  # type: ignore
     options = Options()
-    options.headless = True
+    # options.headless = True
     driver = webdriver.Firefox(options=options)
     yield driver
     driver.close()
@@ -92,3 +100,68 @@ class element_has_css_class:
             return element
         else:
             return False
+
+
+def create_a_game(driver, organizer_secret):
+    """Create players and a game.
+
+    Returns extract_player_dict's output.
+    """
+    driver.get(url_for('organizer.setup_game',
+                       organizer_secret=organizer_secret,
+                       _external=True))
+    playerlist = driver.find_element_by_id('playerlist')
+    # fill in player list
+    playerlist.send_keys('\n'.join(INITIAL_PLAYER_NAMES))
+    submit_form(driver)
+    return extract_player_dict(driver)
+
+
+def start_a_game(driver, organizer_secret):
+    """Create players, confirm them and start a game.
+
+    Returns an OrderedDict (to keep player order) mapping Player.id to
+    confirmed name & URL:
+    {'1_aabbccdd': ['confirmed_name',
+                    'https://example.com/player/player/<secret_id>'],
+     '4_00112233': ['confirmed_name',
+                    'https://example.com/player/player/<secret_id>']}
+    """
+    player_dict = create_a_game(driver, organizer_secret)
+    # submission takes us to waiting page with players and their secret links
+    players_in_memory = OrderedDict()
+    for (unconfirmed_name, suffix) in [(INITIAL_PLAYER_NAMES[0], ' the Nun'),
+                                       (INITIAL_PLAYER_NAMES[2], ''),
+                                       (INITIAL_PLAYER_NAMES[1],
+                                        ' the Cannibal'),
+                                       (INITIAL_PLAYER_NAMES[3], ' II')]:
+        player_link = player_dict[unconfirmed_name][1]
+        with temporary_new_tab(driver, player_link):
+            name_input = driver.find_element_by_id('player_name')
+            name_input.send_keys(suffix)
+            submit_form(driver)
+        players_in_memory[unconfirmed_name] = unconfirmed_name + suffix
+    submit_form(driver)
+    result = {}
+    # Check that we are in the right state:
+    # 1. On the right page
+    assert driver.current_url.endswith(
+        url_for('organizer.dashboard', organizer_secret=organizer_secret))
+    for player, player_info in player_dict.items():
+        # player = unconfirmed name
+        # player_info = (player.id, player url)
+        # players_in_memory = { unconfirmed_name: confirmed_name }
+        if player in players_in_memory:
+            # 2. All players that confirmed are there, extract their confirmed name and url
+            result[player_info[0]] = (
+                driver.find_element_by_id(
+                    f'{player_info[0]}-name').text,
+                driver.find_element_by_id(player_info[0]).find_element_by_class_name('hostify').text)
+        else:
+            # 3. All players that did not confirm are absent
+            with pytest.raises(NoSuchElementException):
+                driver.find_element_by_id(player_info[0])
+    # Wait for current player to be marked
+    WebDriverWait(driver, 2).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "current_player")))
+    return result

@@ -1,12 +1,19 @@
 {% extends "layout.html" %}
 {% block title %}{{ player.name }}{% endblock %}
-{% block header %}?{% endblock %}
+{% block header %}<span id="game_status"></span>{% endblock %}
 
 {% block content %}
   <!-- !!player.player!1598872951605016181!! -->
-  {% if game.state == game.State.CONFIRMING %}
-    <p>Please wait for the organizer to start the game.</p>
-  {% else %}
-    <p>Not implemented yet.</p>
-  {% endif %}
+<script language="javascript">
+  // poll periodically to update player status
+  updateTimer = setTimeout(
+      updatePlayerDashboard,
+      1000 /* milliseconds */,
+      {{ url_for('player.api_status', secret_id=player.secret_id)|tojson }});
+</script>
+  <ul id="other_players">
+  </ul>
+  <div id="stats"></div>
+  <ul id="cards">
+  </ul>
 {% endblock %}

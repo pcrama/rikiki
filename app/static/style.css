@@ -33,3 +33,5 @@ li.confirmed_player::before { content: "✓"; }
 player_name {}
 li.current_player { list-style-type: disc; color: green; }
 li.current_player::before { content: "→"; }
+li.self_player { list-style-type: disc; }
+li.other_player { list-style-type: circle; color: darkgray; }

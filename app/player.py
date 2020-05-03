@@ -87,25 +87,33 @@ def other_player_status(p: models.Player):
             'bid': p.bid}
 
 
-@bp.route('/<secret_id>/api/status')
+@bp.route('/<secret_id>/api/status/')
 @with_valid_game
 def api_status(secret_id='', game=None):
     """Return JSON formatted status for Player."""
     player = get_player(current_app, request, secret_id)
+    if not player.is_confirmed:
+        abort(404)
+
+    if game.state == game.State.CONFIRMING:
+        return jsonify({
+            'game': {'state': game.state},
+            'id': player.id,
+            'players': [{'id': p.id, 'name': p.name}
+                        for p in game.players if p.is_confirmed]})
     result = {
-        'game_state': game.state,
         'cards': player.cards,
+        'bid': player.bid,
+        'tricks': player.tricks,
         'other_players': [other_player_status(p)
                           for p
                           in (game.players
                               if game.state == game.State.CONFIRMING
                               else game.confirmed_players)
                           if p.is_confirmed and p is not player],
-        'bid': player.bid,
-        'tricks': player.tricks,
     }
     try:
         result['current_player'] = game.round.current_player.id
-    except ModelError:
+    except models.ModelError:
         pass
     return jsonify(result)

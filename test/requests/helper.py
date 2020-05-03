@@ -35,6 +35,25 @@ def first_player(game):
     return game.players[0]
 
 
+CONFIRMED_1ST_NAME = 'Confirmed in fixture'
+
+
+@pytest.fixture
+def confirmed_first_player(first_player):
+    first_player.confirm(CONFIRMED_1ST_NAME)
+    return first_player
+
+
+CONFIRMED_LAST_NAME = 'Fixture-confirmed, too'
+
+
+@pytest.fixture
+def confirmed_last_player(game):
+    last_player = game.players[-1]
+    last_player.confirm(CONFIRMED_LAST_NAME)
+    return last_player
+
+
 @pytest.fixture
 def rikiki_app():
     return app.create_app('testing')

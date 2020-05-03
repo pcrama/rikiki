@@ -12,15 +12,14 @@ from selenium.webdriver.support import expected_conditions as EC  # type: ignore
 
 from ..helper import ff_driver as driver
 from ..helper import (
+    INITIAL_PLAYER_NAMES,
     extract_player_dict,
     element_has_css_class,
     organizer_secret,
+    start_a_game,
     submit_form,
     temporary_new_tab,
 )
-
-INITIAL_PLAYER_NAMES = ['Attila', 'Hannibal', 'Chaos', 'Joker',
-                        'Neil', 'Douglas', 'Terry']
 
 
 def test_define_players(driver, organizer_secret):
@@ -132,60 +131,3 @@ def test_dashboard(driver, organizer_secret):
             assert 'current_player' not in p_li_classes
     # TODO: make each player bid in turn and observe the progress of
     # current_player CSS class.
-
-
-def start_a_game(driver, organizer_secret):
-    """Create players, confirm them and start a game.
-
-    Returns an OrderedDict (to keep player order) mapping Player.id to
-    confirmed name & URL:
-    {'1_aabbccdd': ['confirmed_name',
-                    'https://example.com/player/player/<secret_id>'],
-     '4_00112233': ['confirmed_name',
-                    'https://example.com/player/player/<secret_id>']}
-    """
-    driver.get(url_for('organizer.setup_game',
-                       organizer_secret=organizer_secret,
-                       _external=True))
-    playerlist = driver.find_element_by_id('playerlist')
-    # fill in player list
-    playerlist.send_keys('\n'.join(INITIAL_PLAYER_NAMES))
-    submit_form(driver)
-    # submission takes us to waiting page with players and their secret links
-    player_dict = extract_player_dict(driver)
-    players_in_memory = OrderedDict()
-    for (unconfirmed_name, suffix) in [(INITIAL_PLAYER_NAMES[0], ' the Nun'),
-                                       (INITIAL_PLAYER_NAMES[2], ''),
-                                       (INITIAL_PLAYER_NAMES[1],
-                                        ' the Cannibal'),
-                                       (INITIAL_PLAYER_NAMES[3], ' II')]:
-        player_link = player_dict[unconfirmed_name][1]
-        with temporary_new_tab(driver, player_link):
-            name_input = driver.find_element_by_id('player_name')
-            name_input.send_keys(suffix)
-            submit_form(driver)
-        players_in_memory[unconfirmed_name] = unconfirmed_name + suffix
-    submit_form(driver)
-    result = {}
-    # Check that we are in the right state:
-    # 1. On the right page
-    assert driver.current_url.endswith(
-        url_for('organizer.dashboard', organizer_secret=organizer_secret))
-    for player, player_info in player_dict.items():
-        # player = unconfirmed name
-        # player_info = (player.id, player url)
-        # players_in_memory = { unconfirmed_name: confirmed_name }
-        if player in players_in_memory:
-            # 2. All players that confirmed are there, extract their confirmed name and url
-            result[player_info[0]] = (
-                driver.find_element_by_id(
-                    f'{player_info[0]}-name').text,
-                driver.find_element_by_id(player_info[0]).find_element_by_class_name('hostify').text)
-        else:
-            # 3. All players that did not confirm are absent
-            with pytest.raises(NoSuchElementException):
-                driver.find_element_by_id(player_info[0])
-    # Wait for current player to be marked
-    WebDriverWait(driver, 2).until(
-        EC.presence_of_element_located((By.CLASS_NAME, "current_player")))
-    return result

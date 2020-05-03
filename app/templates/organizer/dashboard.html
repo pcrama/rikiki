@@ -8,7 +8,7 @@
   window.onload = hostifyUrls;
   // poll periodically to update player status
   updateTimer = setTimeout(
-      updateGameStatusOrganizeDashboard,
+      updateGameStatusOrganizerDashboard,
       1000 /* milliseconds */,
       {{ url_for('organizer.api_game_status', organizer_secret=organizer_secret)|tojson }});
 </script>
