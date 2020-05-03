@@ -1,0 +1,7 @@
+#!/bin/sh
+rootdir="$(dirname "$(dirname "$(realpath "$0")")")"
+pycodestyle "$rootdir/app/"
+pydocstyle "$rootdir/app/"
+mypy "$rootdir/app/"
+testdir="$rootdir/test"
+FLASK_ENV=testing pytest "$testdir/requests" "$testdir/models"
