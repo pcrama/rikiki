@@ -12,7 +12,7 @@ function hostifyUrls(_) {
 
 let updateTimer = null;
 
-async function updatePlayerStatus(statusUrl) {
+async function updatePlayerStatusForOrganizer(statusUrl) {
     const response = await fetch(statusUrl, {
             method: 'GET',
             mode: 'cors',
@@ -40,7 +40,7 @@ async function updatePlayerStatus(statusUrl) {
             li.children[0].textContent = data.players[p];
         }
     }
-    updateTimer = setTimeout(updatePlayerStatus, 1000 /* milliseconds */, statusUrl);
+    updateTimer = setTimeout(updatePlayerStatusForOrganizer, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
 }
 
