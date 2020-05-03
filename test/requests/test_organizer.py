@@ -1,4 +1,3 @@
-import json
 import pytest  # type: ignore
 from flask import current_app, url_for
 import app                      # type: ignore
@@ -141,7 +140,8 @@ def test_api_game_status__game_created__get_returns_json(organizer_secret, clien
     response = client.get(
         f'/organizer/{organizer_secret}/api/game_status/')
     assert response.status_code == 200
-    status = json.loads(response.data)
+    assert response.is_json
+    status = response.get_json()
     status_state = status['state']
     assert status_state == app.models.Game.State.CONFIRMING
     status_players = status['players']
@@ -158,7 +158,7 @@ def test_api_game_status__game_created__get_returns_json(organizer_secret, clien
     response = client.get(
         f'/organizer/{organizer_secret}/api/game_status/')
     assert response.status_code == 200
-    status = json.loads(response.data)
+    status = response.get_json()
     status_state = status['state']
     assert status_state == app.models.Game.State.CONFIRMING
     status_players = status['players']
@@ -176,7 +176,8 @@ def test_api_game_status__game_started__get_returns_json(organizer_secret, clien
     response = client.get(
         f'/organizer/{organizer_secret}/api/game_status/')
     assert response.status_code == 200
-    status = json.loads(response.data)
+    assert response.is_json
+    status = response.get_json()
     status_state = status['state']
     assert status_state == app.models.Game.State.PLAYING
     status_players = status['players']

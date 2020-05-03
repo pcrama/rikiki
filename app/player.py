@@ -4,7 +4,7 @@ import functools
 import os
 from typing import List, Optional, Set
 
-from flask import (Blueprint, abort, current_app, flash, json,
+from flask import (Blueprint, abort, current_app, flash, jsonify,
                    redirect, render_template, request, url_for)
 
 from . import models
@@ -108,4 +108,4 @@ def api_status(secret_id='', game=None):
         result['current_player'] = game.round.current_player.id
     except ModelError:
         pass
-    return json.dumps(result).encode('utf-8')
+    return jsonify(result)
