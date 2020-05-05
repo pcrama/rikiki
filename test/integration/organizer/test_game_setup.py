@@ -22,7 +22,7 @@ from ..helper import (
 )
 
 
-def test_define_players(driver, organizer_secret):
+def define_players(driver, organizer_secret):
     driver.get(url_for('organizer.wait_for_users',
                        organizer_secret=organizer_secret,
                        _external=True))
@@ -113,7 +113,7 @@ def test_define_players(driver, organizer_secret):
         url_for('organizer.dashboard', organizer_secret=organizer_secret))
 
 
-def test_dashboard(driver, organizer_secret):
+def dashboard(driver, organizer_secret):
     player_dict = start_a_game(driver, organizer_secret)
     player_ids = list(player_dict.keys())
     # without errors:
