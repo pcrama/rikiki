@@ -4,6 +4,7 @@ import app  # type: ignore
 import pytest  # type: ignore
 
 from app.organizer import parse_playerlist  # type: ignore
+from app import models
 
 from .helper import (
     CONFIRMED_1ST_NAME,
@@ -15,6 +16,7 @@ from .helper import (
     game,
     rendered_template,
     rikiki_app,
+    started_game,
 )
 
 
@@ -77,7 +79,7 @@ def test_player_confirm__game_exists__post_valid_confirmation(first_player, clie
     assert rendered_template(response, 'player.player')
     # check that template contains placeholders for data.  They will
     # be filled in by Javascript.
-    assert b'id="other_players"' in response.data
+    assert b'id="players"' in response.data
     assert b'id="stats"' in response.data
     assert b'id="cards"' in response.data
     assert b'setTimeout(' in response.data
@@ -150,7 +152,7 @@ def test_api_status__confirmed_no_other_players_yet__returns_correct_json(confir
     status = response.get_json()
     # only one key yet: empty other_players list
     assert len(status) == 3
-    assert status['game'] == {'state': game.state}
+    assert status['game_state'] == game.state
     assert status['players'] == [
         {'id': confirmed_first_player.id, 'name': confirmed_first_player.name}]
 
@@ -163,7 +165,7 @@ def test_api_status__confirmed_one_other_player__returns_correct_json(confirmed_
     assert response.is_json
     status = response.get_json()
     assert len(status) == 3
-    assert status['game'] == {'state': game.state}
+    assert status['game_state'] == game.state
     assert status['id'] == confirmed_first_player.id
     assert status['players'] == [
         {'id': confirmed_first_player.id, 'name': confirmed_first_player.name},
@@ -175,7 +177,7 @@ def test_api_status__confirmed_one_other_player__returns_correct_json(confirmed_
     assert response.is_json
     status = response.get_json()
     assert len(status) == 3
-    assert status['game'] == {'state': game.state}
+    assert status['game_state'] == game.state
     assert status['id'] == confirmed_first_player.id
     assert status['players'] == [
         {'id': confirmed_first_player.id, 'name': confirmed_first_player.name},
@@ -191,7 +193,7 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert response.is_json
     status = response.get_json()
     assert len(status) == 3
-    assert status['game'] == {'state': game.state}
+    assert status['game_state'] == game.state
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
         {'id': game.players[2].id, 'name': game.players[2].name},
@@ -203,7 +205,7 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert response.is_json
     status = response.get_json()
     assert len(status) == 3
-    assert status['game'] == {'state': game.state}
+    assert status['game_state'] == game.state
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
         {'id': game.players[0].id, 'name': game.players[0].name},
@@ -216,10 +218,33 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert response.is_json
     status = response.get_json()
     assert len(status) == 3
-    assert status['game'] == {'state': game.state}
+    assert status['game_state'] == game.state
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
         {'id': game.players[0].id, 'name': game.players[0].name},
         {'id': game.players[2].id, 'name': game.players[2].name},
         {'id': game.players[-2].id, 'name': game.players[-2].name},
         {'id': confirmed_last_player.id, 'name': confirmed_last_player.name}]
+
+
+def test_api_status__game_started__lists_players_in_order(started_game, client):
+    player = started_game.confirmed_players[0]
+    response = client.get(f'/player/{player.secret_id}/api/status/')
+    assert response.status_code == 200
+    assert response.is_json
+    status = response.get_json()
+    assert len(status) == 5
+    assert status['game_state'] == models.Game.State.PLAYING
+    assert status['round'] == {
+        'state': models.Round.State.BIDDING,
+        'current_player': started_game.confirmed_players[0].id}
+    assert status['cards'] == player.cards
+    assert status['id'] == player.id
+    for (idx, player_info) in enumerate(status['players']):
+        assert len(player_info) == 5
+        assert player_info['id'] == started_game.confirmed_players[idx].id
+        assert player_info['name'] == started_game.confirmed_players[idx].name
+        assert player_info['tricks'] == 0  # start of game!
+        # everybody has the same amount of cards at the start:
+        assert player_info['cards'] == len(player.cards)
+        assert player_info['bid'] is None  # no bids placed yet

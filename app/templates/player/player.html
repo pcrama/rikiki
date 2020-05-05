@@ -8,10 +8,10 @@
   // poll periodically to update player status
   updateTimer = setTimeout(
       updatePlayerDashboard,
-      1000 /* milliseconds */,
+      0 /* run immediately after loading */,
       {{ url_for('player.api_status', secret_id=player.secret_id)|tojson }});
 </script>
-  <ul id="other_players">
+  <ul id="players">
   </ul>
   <div id="stats"></div>
   <ul id="cards">

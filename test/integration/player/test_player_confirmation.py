@@ -28,7 +28,7 @@ def get_player_dashboard_elements(driver):
     )
 
 
-def test_player_dashboard_while_others_confirm(driver, organizer_secret):
+def test_player_confirmation(driver, organizer_secret):
     player_dict = create_a_game(driver, organizer_secret)
     player_unconfirmed_names = list(player_dict.keys())
     (player_unconfirmed_name, (player_id, player_confirmation_url)) = next(

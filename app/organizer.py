@@ -142,7 +142,7 @@ def api_game_status(organizer_secret):
                         # adding themselves, game.confirmed_players
                         # is not valid yet.
                         else (_p for _p in game.players if _p.is_confirmed))},
-        'state': game.state
+        'game_state': game.state
     }
     if game.state == game.state.PLAYING:
         result['currentCardCount'] = game.current_card_count

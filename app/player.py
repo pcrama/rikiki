@@ -97,10 +97,21 @@ def api_status(secret_id='', game=None):
 
     if game.state == game.State.CONFIRMING:
         return jsonify({
-            'game': {'state': game.state},
+            'game_state': game.state,
             'id': player.id,
             'players': [{'id': p.id, 'name': p.name}
                         for p in game.players if p.is_confirmed]})
+    elif game.state == game.State.PLAYING:
+        return jsonify({
+            'game_state': game.state,
+            'id': player.id,
+            'cards': player.cards,
+            'round': {'state': game.round.state,
+                      'current_player': game.round.current_player.id},
+            'players': [
+                {'id': p.id, 'name': p.name, 'cards': p.card_count,
+                 'bid': p.bid, 'tricks': p.tricks}
+                for p in game.confirmed_players]})
     result = {
         'cards': player.cards,
         'bid': player.bid,

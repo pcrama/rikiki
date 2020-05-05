@@ -195,5 +195,7 @@ The ~Round~ only maintains the cards on the table of the current trick.
 *** Controllers
 **** Organizer
 ***** Set up a new game
+***** Start the game
 **** Player
 ***** Confirm the invitation
+***** Place a bid

@@ -9,13 +9,13 @@
   // poll periodically to update player status
   updateTimer = setTimeout(
       updatePlayerStatusForOrganizer,
-      1000 /* milliseconds */,
+      0 /* run immediately after loading */,
       {{ url_for('organizer.api_game_status', organizer_secret=organizer_secret)|tojson }});
 </script>
   <ul id="player_list">
     {% for player in players %}
     <li class="unconfirmed_player" id="{{ player.id }}">
-      <span class="player_name">{{ player.name }}</span>:
+      <span class="player_name" onclick="copyEventTargetText(this)">{{ player.name }}</span>:
       <span class="hostify">{{ url_for('player.confirm', secret_id=player.secret_id, _method='GET') }}</span>
     </li>
     {% endfor %}

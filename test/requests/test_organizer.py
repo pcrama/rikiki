@@ -142,7 +142,7 @@ def test_api_game_status__game_created__get_returns_json(organizer_secret, clien
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    status_state = status['state']
+    status_state = status['game_state']
     assert status_state == app.models.Game.State.CONFIRMING
     status_players = status['players']
     assert len(status_players) == 0  # no players confirmed yet
@@ -159,7 +159,7 @@ def test_api_game_status__game_created__get_returns_json(organizer_secret, clien
         f'/organizer/{organizer_secret}/api/game_status/')
     assert response.status_code == 200
     status = response.get_json()
-    status_state = status['state']
+    status_state = status['game_state']
     assert status_state == app.models.Game.State.CONFIRMING
     status_players = status['players']
     assert len(status_players) == 2
@@ -178,7 +178,7 @@ def test_api_game_status__game_started__get_returns_json(organizer_secret, clien
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    status_state = status['state']
+    status_state = status['game_state']
     assert status_state == app.models.Game.State.PLAYING
     status_players = status['players']
     assert len(status_players) == len(started_game.confirmed_players)
