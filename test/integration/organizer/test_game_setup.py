@@ -105,9 +105,12 @@ def define_players(driver, organizer_secret):
             # name matches current state (i.e. updates are seen, but old names remain untouched)
             assert p_li.find_element_by_class_name('player_name').text == \
                 players_in_memory.get(p, p)
-            # link is unchanged
-            assert p_li.find_element_by_class_name('hostify').text == \
-                player_dict[p][1]
+            # link is updated for confirmed players, the same for unconfirmed players
+            player_link = p_li.find_element_by_class_name('hostify').text
+            if p in players_in_memory:
+                assert player_link != player_dict[p][1]
+            else:
+                assert player_link == player_dict[p][1]
     submit_form(driver)
     assert driver.current_url.endswith(
         url_for('organizer.dashboard', organizer_secret=organizer_secret))

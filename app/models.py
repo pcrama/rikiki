@@ -1,6 +1,7 @@
 """Model classes (the M in MVC)."""
 import enum
 import hashlib
+import os
 import random
 from typing import (List, Optional)
 
@@ -164,7 +165,9 @@ class Player:
         self._provisional_name = provisional_name
         """The display name of the Player as proposed by the Organizer."""
         self._secret_id = secret_id
-        """A random string, will be used to authenticate the link."""
+        """A random string to authenticate the confirmation process."""
+        self._confirmed_secret_id = "".join(f"{x:02X}" for x in os.urandom(16))
+        """A random string to authenticate all links after confirmation."""
         global PLAYER_COUNTER
         PLAYER_COUNTER += 1
         self._id = '{0}_{1}'.format(
@@ -194,7 +197,9 @@ a Round."""
     @property
     def secret_id(self) -> str:
         """Return the secret id of the Player."""
-        return self._secret_id
+        return (self._confirmed_secret_id
+                if self.is_confirmed
+                else self._secret_id)
 
     @property
     def id(self) -> str:

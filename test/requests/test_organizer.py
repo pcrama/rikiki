@@ -1,8 +1,10 @@
 import pytest  # type: ignore
 from flask import current_app, url_for
-import app                      # type: ignore
 
-from app.organizer import parse_playerlist  # type: ignore
+import app
+
+from app.organizer import parse_playerlist
+from app.player import organizer_url_for_player
 
 from .helper import FLASH_ERROR, client, game, organizer_secret, rendered_template, rikiki_app, started_game
 
@@ -165,8 +167,11 @@ def test_api_game_status__game_created__get_returns_json(organizer_secret, clien
     assert len(status_players) == 2
     assert game.players[CP1].id in status_players
     assert game.players[CP2].id in status_players
-    assert status_players[game.players[CP1].id] == NEW_NAME
-    assert status_players[game.players[CP2].id] == game.players[CP2].name
+    # inform organizer about updated player links in case they lose theirs
+    assert status_players[game.players[CP1].id] == {
+        'name': NEW_NAME, 'url': organizer_url_for_player(game.players[CP1])}
+    assert status_players[game.players[CP2].id] == {
+        'name': game.players[CP2].name, 'url': organizer_url_for_player(game.players[CP2])}
     with pytest.raises(KeyError):
         status['currentCardCount']
         status['round']

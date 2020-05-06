@@ -1,11 +1,18 @@
 // my deployment choice (repl.it for playing in family circle) means
 // I am not too sure about what host my server will run on.  So I
 // prepend it dynamically to the URL:
-function hostifyUrls(_) {
+function prependHostName(relativeOrAbsoluteUrl) {
     const urlPrefix = document.location.origin;
+    return relativeOrAbsoluteUrl.startsWith(urlPrefix)
+        ? relativeOrAbsoluteUrl
+        : urlPrefix + relativeOrAbsoluteUrl;
+}
+
+function hostifyUrls(_) {
     Array.from(document.getElementsByClassName("hostify")).forEach((item, index, array) => {
-        if (!item.textContent.startsWith(urlPrefix)) {
-            item.textContent = urlPrefix + item.textContent;
+        let newUrl = prependHostName(item.textContent);
+        if (newUrl != item.textContent) {
+            item.textContent = newUrl;
             item.onclick = function() { copyEventTargetText(this) };
         }
     });
@@ -84,7 +91,8 @@ async function updatePlayerStatusForOrganizer(statusUrl) {
         if (li && li.classList.contains(classToRemove)) {
             li.classList.remove(classToRemove);
             li.classList.add('confirmed_player');
-            li.children[0].textContent = data.players[p];
+            li.children[0].textContent = data.players[p].name;
+            li.children[1].textContent = prependHostName(data.players[p].url);
         }
     }
     updateTimer = setTimeout(updatePlayerStatusForOrganizer, 1000 /* milliseconds */, statusUrl);
@@ -187,13 +195,12 @@ async function updatePlayerDashboard(statusUrl) {
     if (gameState == GAME_STATE_CONFIRMING) {
         gameStatusElt.textContent = 'Waiting for other players to join and organizer to start the game';
         fillPlayerDashboardPlayerList(players, selfId, playersElt, ({id: pId, name: pName}, playerLi) => {
-            console.log(`${pId} ${playerLi.firstChild === playerLi.lastChild} ${playerLi.firstChild && playerLi.firstChild.tagName} ${playerLi.firstChild && playerLi.firstChild.id}`);
             if (playerLi.firstChild != null
                 && playerLi.firstChild === playerLi.lastChild
                 && playerLi.firstChild.tagName == 'SPAN'
                 && playerLi.firstChild.id == `${pId}-name`)
             {
-                console.log('reuse');
+                // NOP: reuse existing playerLi element
             } else {
                 clearElement(playerLi).append(document.createElement('span'));
             }

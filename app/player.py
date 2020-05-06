@@ -12,6 +12,27 @@ from . import models
 bp = Blueprint('player', __name__, url_prefix='/player')
 
 
+def organizer_url_for_player(player, _method='GET'):
+    """Get Player's URL to show in organizer dashboard.
+
+    This URL differs for confirmed and unconfirmed players.  This
+    allows the Player model to have 2 secrets:
+
+      1. for confirming, that is destroyed as soon as the Player is
+         confirmed
+
+      2. for confirmed Player usage.  So even if 2 persons see the
+         same Player confirmation URL, only the first person to
+         confirm will be able to use the Player.  Otherwise, the
+         second person would be able to look at the first person's
+         cards.
+    """
+    return url_for(
+        'player.player' if player.is_confirmed else 'player.confirm',
+        secret_id=player.secret_id,
+        _method=_method)
+
+
 def with_valid_game(f):
     """Decorate controller to check that a game has already been created."""
     @functools.wraps(f)

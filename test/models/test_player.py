@@ -219,3 +219,9 @@ def test_Player__init__accepts_no_tricks(new_player):
 def test_Player__confirmed_without_cards__accepts_no_trick(confirmed_player):
     with pytest.raises(IllegalStateError):
         confirmed_player.add_trick()
+
+
+def test_Player__confirmed_has_new_secret_id(new_player):
+    unconfirmed_secret = new_player.secret_id
+    new_player.confirm('')
+    assert new_player.secret_id != unconfirmed_secret

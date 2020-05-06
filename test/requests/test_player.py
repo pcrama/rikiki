@@ -1,9 +1,12 @@
 import random
-import app  # type: ignore
+
+import flask
 
 import pytest  # type: ignore
 
+import app  # type: ignore
 from app.organizer import parse_playerlist  # type: ignore
+from app.player import organizer_url_for_player
 from app import models
 
 from .helper import (
@@ -132,6 +135,25 @@ def test_player__unconfirmed__redirects_to_confirmation(first_player, client):
     assert FLASH_ERROR in response.data
 
 
+def test_player__confirmation__invalidates_confirmation_link(first_player, client):
+    unconfirmed_secret_id = first_player.secret_id
+    confirmation_link = f'/player/confirm/{unconfirmed_secret_id}/'
+    response = client.get(confirmation_link, follow_redirects=True)
+    assert response.status_code == 200
+    response = client.post(f'/player/confirm/',
+                           data={'secret_id': first_player.secret_id,
+                                 'confirmed_name': 'confirmation name'},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    response = client.get(confirmation_link, follow_redirects=True)
+    assert response.status_code == 403
+    response = client.post(f'/player/confirm/',
+                           data={'secret_id': unconfirmed_secret_id,
+                                 'confirmed_name': 'confirmation name'},
+                           follow_redirects=True)
+    assert response.status_code == 403
+
+
 def test_api_status__wrong_secret__403(confirmed_first_player, client):
     response = client.get(
         f'/player/wrong_secret/api/status/', follow_redirects=True)
@@ -248,3 +270,15 @@ def test_api_status__game_started__lists_players_in_order(started_game, client):
         # everybody has the same amount of cards at the start:
         assert player_info['cards'] == len(player.cards)
         assert player_info['bid'] is None  # no bids placed yet
+
+
+def test_organizer_url_for_unconfirmed_player(rikiki_app, first_player):
+    with rikiki_app.test_request_context():
+        assert organizer_url_for_player(first_player
+                                        ) == f'/player/confirm/{first_player.secret_id}/'
+
+
+def test_organizer_url_for_confirmed_player(rikiki_app, confirmed_first_player):
+    with rikiki_app.test_request_context():
+        assert organizer_url_for_player(confirmed_first_player
+                                        ) == f'/player/{confirmed_first_player.secret_id}/'

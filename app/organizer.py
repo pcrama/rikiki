@@ -8,6 +8,7 @@ from flask import (Blueprint, abort, current_app, flash, jsonify,
                    redirect, render_template, request, url_for)
 
 from . import models
+from .player import organizer_url_for_player
 
 bp = Blueprint('organizer', __name__, url_prefix='/organizer')
 
@@ -130,11 +131,12 @@ def api_game_status(organizer_secret):
     except RuntimeError:
         abort(404)
     result = {
-        'players': {p.id: (p.name
+        'players': {p.id: ({'name': p.name, 'url': organizer_url_for_player(p)}
                            if game.state == game.state.CONFIRMING
                            else {'bid': p.bid,
                                  'cards': p.card_count,
-                                 'name': p.name})
+                                 'name': p.name,
+                                 'url': organizer_url_for_player(p)})
                     for p
                     in (game.confirmed_players
                         if game.state != game.state.CONFIRMING
