@@ -30,7 +30,10 @@ def organizer_secret(live_server):
 
 
 def extract_player_dict(driver):
-    """Build dictionary mapping player names to their (id, url) tuples.
+    """Build OrderedDict mapping player names to their (id, url) tuples.
+
+    The ordering is important as it represents the order in which the
+    players will place their bids and play their cards.
 
     Assumes the page contains this structure:
       <ul id="player_list">

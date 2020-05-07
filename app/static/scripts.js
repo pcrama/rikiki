@@ -154,16 +154,36 @@ async function updateGameStatusOrganizerDashboard(statusUrl) {
 
 
 function fillPlayerDashboardPlayerList(players, selfId, playersElt, callback) {
+    // reuse existing elements to avoid `stale element' errors in selenium tests.
+    // new <li/> elements should be inserted before this one, appended to the end if it is null.
+    let prependLi = playersElt.firstChild;
     players.forEach(player => {
-        // reuse existing elements to avoid `stale element' errors in selenium tests
         let {id: pId} = player;
-        let newLi = document.getElementById(pId);
-        if (!newLi) {
-            newLi = document.createElement('li');
-            newLi.classList.add(pId == selfId ? 'self_player' : 'other_player');
-            newLi.id = pId;
-            callback(player, newLi);
-            playersElt.append(newLi);
+        let playerLi = document.getElementById(pId);
+        console.log(`pId=${pId} playerLi=${playerLi} prependLi=${prependLi}`);
+        if (!playerLi) {
+            playerLi = document.createElement('li');
+            playerLi.classList.add(pId == selfId ? 'self_player' : 'other_player');
+            playerLi.id = pId;
+        }
+        callback(player, playerLi);
+        console.log(playerLi);
+        if (playerLi.parentNode) {
+            // playerLi is already in document somewhere, next
+            // elements should come after it, so update prependLi
+            prependLi = playerLi.nextSibling;
+            while (prependLi && prependLi.tagName != 'LI') {
+                prependLi = prependLi.nextSibling;
+            };
+        } else {
+            // playerLi was newly created, place it inside playersElt
+            // at the appropriate place such that the displayed order
+            // matches the playersElt order.
+            if (prependLi) {
+                playersElt.insertBefore(playerLi, prependLi);
+            } else {
+                playersElt.append(playerLi);
+            }
         }
     });
 }
@@ -200,7 +220,7 @@ async function updatePlayerDashboard(statusUrl) {
                 && playerLi.firstChild.tagName == 'SPAN'
                 && playerLi.firstChild.id == `${pId}-name`)
             {
-                // NOP: reuse existing playerLi element
+                // NOP: li element and its content will be reused
             } else {
                 clearElement(playerLi).append(document.createElement('span'));
             }
