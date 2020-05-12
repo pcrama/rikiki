@@ -1,6 +1,6 @@
 import unittest.mock as mock
 
-import pytest
+import pytest  # type: ignore
 
 from app.models import (
     Card,
@@ -257,3 +257,32 @@ def test_Round__full_scenario(mock_confirmed_players):
     players[0].add_trick.assert_called_with()
     assert round_._state == Round.State.DONE
     game.round_finished.assert_called_with()
+
+
+def test_Round__status_summary():
+    players = [Player(f'P{idx}', f'S{idx}') for idx in range(5)]
+    for p in players:
+        p.confirm('')
+    (game, round_) = make_round_with_players_list(players, how_many_cards=2)
+    summaries = [round_.status_summary()]
+    assert summaries[0] == round_.status_summary()
+    for p in players:
+        p.place_bid(1)
+        summaries.append(round_.status_summary())
+        assert len(set(summaries)) == len(summaries)
+    # Simulate tricks
+    while any(p.card_count > 0 for p in players):
+        # make sure to respect the order of players imposed by round_
+        for idx in [idx % len(players) for idx in range(
+                round_._current_player, round_._current_player + len(players))]:
+            p = players[idx]
+            idx = 0
+            while idx < p.card_count:
+                try:
+                    p.play_card(p.cards[idx])
+                    print(players[0].card_count)
+                    break
+                except Exception:
+                    idx += 1
+            summaries.append(round_.status_summary())
+            assert len(set(summaries)) == len(summaries)

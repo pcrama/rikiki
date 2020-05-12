@@ -1,6 +1,7 @@
 import random
 
 import flask
+from jinja2 import escape
 
 import pytest  # type: ignore
 
@@ -172,39 +173,47 @@ def test_api_status__confirmed_no_other_players_yet__returns_correct_json(confir
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    # only one key yet: empty other_players list
-    assert len(status) == 3
-    assert status['game_state'] == game.state
+    assert len(status) == 4
+    assert status['summary'] == game.status_summary()
+    assert 'Waiting' in status['game_state']
     assert status['players'] == [
-        {'id': confirmed_first_player.id, 'name': confirmed_first_player.name}]
+        {'id': confirmed_first_player.id,
+         'h': f'<li id="{confirmed_first_player.id}" class="self_player">{escape(confirmed_first_player.name)}</li>'}]
 
 
 def test_api_status__confirmed_one_other_player__returns_correct_json(confirmed_first_player, game, client):
-    game.players[2].confirm('')
+    game.players[2].confirm('<confirmed&tested>')
     response = client.get(
         f'/player/{confirmed_first_player.secret_id}/api/status/')
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 3
-    assert status['game_state'] == game.state
+    assert len(status) == 4
+    assert status['summary'] == game.status_summary()
+    assert 'Waiting' in status['game_state']
     assert status['id'] == confirmed_first_player.id
     assert status['players'] == [
-        {'id': confirmed_first_player.id, 'name': confirmed_first_player.name},
-        {'id': game.players[2].id, 'name': game.players[2].name}]
+        {'id': confirmed_first_player.id,
+         'h': f'<li id="{confirmed_first_player.id}" class="self_player">{escape(confirmed_first_player.name)}</li>'},
+        {'id': game.players[2].id,
+         'h': f'<li id="{game.players[2].id}" class="other_player">{escape(game.players[2].name)}</li>'}]
     game.players[1].confirm('api status test')
     response = client.get(
         f'/player/{confirmed_first_player.secret_id}/api/status/')
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 3
-    assert status['game_state'] == game.state
+    assert len(status) == 4
+    assert status['summary'] == game.status_summary()
+    assert 'Waiting' in status['game_state']
     assert status['id'] == confirmed_first_player.id
     assert status['players'] == [
-        {'id': confirmed_first_player.id, 'name': confirmed_first_player.name},
-        {'id': game.players[1].id, 'name': 'api status test'},
-        {'id': game.players[2].id, 'name': game.players[2].name}]
+        {'id': confirmed_first_player.id,
+         'h': f'<li id="{confirmed_first_player.id}" class="self_player">{escape(confirmed_first_player.name)}</li>'},
+        {'id': game.players[1].id,
+         'h': f'<li id="{game.players[1].id}" class="other_player">api status test</li>'},
+        {'id': game.players[2].id,
+         'h': f'<li id="{game.players[2].id}" class="other_player">{escape(game.players[2].name)}</li>'}]
 
 
 def test_api_status__several_confirmed_players__lists_players_in_order(confirmed_last_player, game, client):
@@ -214,39 +223,51 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 3
-    assert status['game_state'] == game.state
+    assert len(status) == 4
+    assert status['summary'] == game.status_summary()
+    assert 'Waiting' in status['game_state']
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
-        {'id': game.players[2].id, 'name': game.players[2].name},
-        {'id': confirmed_last_player.id, 'name': confirmed_last_player.name}]
+        {'id': game.players[2].id,
+         'h': f'<li id="{game.players[2].id}" class="other_player">{escape(game.players[2].name)}</li>'},
+        {'id': confirmed_last_player.id,
+         'h': f'<li id="{confirmed_last_player.id}" class="self_player">{escape(confirmed_last_player.name)}</li>'}]
     game.players[0].confirm('')
     response = client.get(
         f'/player/{confirmed_last_player.secret_id}/api/status/')
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 3
-    assert status['game_state'] == game.state
+    assert len(status) == 4
+    assert status['summary'] == game.status_summary()
+    assert 'Waiting' in status['game_state']
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
-        {'id': game.players[0].id, 'name': game.players[0].name},
-        {'id': game.players[2].id, 'name': game.players[2].name},
-        {'id': confirmed_last_player.id, 'name': confirmed_last_player.name}]
+        {'id': game.players[0].id,
+         'h': f'<li id="{game.players[0].id}" class="other_player">{escape(game.players[0].name)}</li>'},
+        {'id': game.players[2].id,
+         'h': f'<li id="{game.players[2].id}" class="other_player">{escape(game.players[2].name)}</li>'},
+        {'id': confirmed_last_player.id,
+         'h': f'<li id="{confirmed_last_player.id}" class="self_player">{escape(confirmed_last_player.name)}</li>'}]
     game.players[-2].confirm('')
     response = client.get(
         f'/player/{confirmed_last_player.secret_id}/api/status/')
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 3
-    assert status['game_state'] == game.state
+    assert len(status) == 4
+    assert status['summary'] == game.status_summary()
+    assert 'Waiting' in status['game_state']
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
-        {'id': game.players[0].id, 'name': game.players[0].name},
-        {'id': game.players[2].id, 'name': game.players[2].name},
-        {'id': game.players[-2].id, 'name': game.players[-2].name},
-        {'id': confirmed_last_player.id, 'name': confirmed_last_player.name}]
+        {'id': game.players[0].id,
+         'h': f'<li id="{game.players[0].id}" class="other_player">{escape(game.players[0].name)}</li>'},
+        {'id': game.players[2].id,
+         'h': f'<li id="{game.players[2].id}" class="other_player">{escape(game.players[2].name)}</li>'},
+        {'id': game.players[-2].id,
+         'h': f'<li id="{game.players[-2].id}" class="other_player">{escape(game.players[-2].name)}</li>'},
+        {'id': confirmed_last_player.id,
+         'h': f'<li id="{confirmed_last_player.id}" class="self_player">{escape(confirmed_last_player.name)}</li>'}]
 
 
 def test_api_status__game_started__lists_players_in_order(started_game, client):
@@ -255,21 +276,71 @@ def test_api_status__game_started__lists_players_in_order(started_game, client):
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 5
-    assert status['game_state'] == models.Game.State.PLAYING
+    assert len(status) == 6
+    assert status['summary'] == started_game.status_summary()
+    assert 'Bidding' in status['game_state']
+    assert f'with {started_game.current_card_count} cards' in status['game_state']
+    assert f' 0 tricks bid so far' in status['game_state']
     assert status['round'] == {
         'state': models.Round.State.BIDDING,
         'current_player': started_game.confirmed_players[0].id}
     assert status['cards'] == player.cards
     assert status['id'] == player.id
     for (idx, player_info) in enumerate(status['players']):
-        assert len(player_info) == 5
+        assert len(player_info) == 2
         assert player_info['id'] == started_game.confirmed_players[idx].id
-        assert player_info['name'] == started_game.confirmed_players[idx].name
-        assert player_info['tricks'] == 0  # start of game!
-        # everybody has the same amount of cards at the start:
-        assert player_info['cards'] == len(player.cards)
-        assert player_info['bid'] is None  # no bids placed yet
+        assert escape(
+            started_game.confirmed_players[idx].name) in player_info['h']
+        assert f'<li id="{escape(started_game.confirmed_players[idx].id)}"' in player_info['h']
+        assert str(started_game.confirmed_players[idx].card_count
+                   ) in player_info['h']
+        assert 'not bid' in player_info['h']
+        if idx == 0:
+            assert 'current_player' in player_info['h']
+            assert 'self_player' in player_info['h']
+            assert 'other_player' not in player_info['h']
+        else:
+            assert 'current_player' not in player_info['h']
+            assert 'other_player' in player_info['h']
+            assert 'self_player' not in player_info['h']
+
+
+def test_api_status__bidding_process(started_game, client):
+    players = started_game.confirmed_players
+    for (idx, p) in enumerate(players):
+        p.place_bid(1)
+        response = client.get(f'/player/{p.secret_id}/api/status/')
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert len(status) == 6
+        assert status['summary'] == started_game.status_summary()
+        assert ('Bidding' if idx < (len(players) - 1)
+                else 'Playing') in status['game_state']
+        assert f'with {started_game.current_card_count} cards' in status['game_state']
+        assert f' {idx + 1} tricks bid so far' in status['game_state']
+        if idx < len(players) - 1:
+            assert status['round'] == {
+                'state': int(models.Round.State.BIDDING),
+                'current_player': started_game.confirmed_players[idx + 1].id}
+        else:
+            assert status['round'] == {
+                'state': int(models.Round.State.PLAYING),
+                'current_player': started_game.confirmed_players[0].id}
+        assert status['cards'] == p.cards
+        assert status['id'] == p.id
+        for (idx2, player_info) in enumerate(status['players']):
+            assert len(player_info) == 2
+            assert player_info['id'] == started_game.confirmed_players[idx2].id
+            assert escape(
+                started_game.confirmed_players[idx2].name) in player_info['h']
+            assert f'<li id="{escape(started_game.confirmed_players[idx2].id)}"' in player_info['h']
+            assert str(started_game.confirmed_players[idx2].card_count
+                       ) in player_info['h']
+            if idx2 <= idx:
+                assert f'bid for {started_game.confirmed_players[idx2].bid} tricks' in player_info['h']
+            else:
+                assert 'not bid yet' in player_info['h']
 
 
 def test_organizer_url_for_unconfirmed_player(rikiki_app, first_player):

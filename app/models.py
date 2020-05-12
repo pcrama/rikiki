@@ -76,6 +76,30 @@ class Game:
         """Game state."""
         self._confirmed_players: List["Player"] = []
         """List of players that had confirmed before Game started."""
+        self._current_card_count: int = 0
+        """How many cards are used in the current round."""
+        self._round: Optional["Round"]
+
+    def status_summary(self) -> str:
+        """Return an identifier for the current state.
+
+        This identifier helps detect state changes and trigger redraws
+        of the UI.
+        """
+        result = f'{self._state}+{len(self._players)}' \
+            f'+{sum(p.is_confirmed for p in self._players)}' \
+            f'+{len(self._confirmed_players)}' \
+            f'+{"".join(chr(len(p.name) % 27 + 64) for p in self._players)}'
+        try:
+            result += str(self._current_card_count)
+        except Exception:
+            pass
+        else:
+            try:
+                result += self.round.status_summary()
+            except Exception:
+                pass
+        return result
 
     def start_game(self) -> "Round":
         """Start first Round of the Game."""
@@ -117,6 +141,9 @@ class Game:
     def round(self) -> "Round":
         """Return Round that is currently being played."""
         self._ensure_state(Game.State.PLAYING)
+        if self._round is None:
+            raise ModelError(
+                f'_round is None even though state is {self._state}')
         return self._round
 
     @property
@@ -496,6 +523,29 @@ class Round:
     def state(self) -> State:
         """Return Round's State."""
         return self._state
+
+    def status_summary(self) -> str:
+        """Return an identifier for the current state.
+
+        This identifier helps detect state changes and trigger redraws
+        of the UI.
+        """
+        result = f'{chr(self._state - Round.State.BIDDING + ord("0"))}' \
+            f'{self._current_player}'
+        if self._state == Round.State.BIDDING:
+            idx = 0
+            while True:
+                try:
+                    p = self._players[idx]
+                    result += chr(p.bid + ord("A"))  # type: ignore
+                except Exception:
+                    break
+                else:
+                    idx += 1
+        elif self._state == Round.State.PLAYING:
+            result += ''.join(chr(p.card_count + ord("a"))
+                              for p in self._players)
+        return result
 
     @property
     def current_player(self) -> Player:

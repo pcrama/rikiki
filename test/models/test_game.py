@@ -196,3 +196,27 @@ def test_Game__full_scenario():
         game.start_next_round()
     assert game.current_card_count == 0
     assert game.state == Game.State.DONE
+
+
+def test_Game__status_summary(new_game_waiting_room):
+    game = new_game_waiting_room
+    summaries = [game.status_summary()]
+    assert summaries[0] == game.status_summary()
+    game.players[1].confirm('a')
+    summaries.append(game.status_summary())
+    assert len(set(summaries)) == len(summaries)
+    game.players[0].confirm('abcdefgh')
+    summaries.append(game.status_summary())
+    assert len(set(summaries)) == len(summaries)
+    for p in game.players:
+        if not p.is_confirmed:
+            p.confirm('')
+            summaries.append(game.status_summary())
+            assert len(set(summaries)) == len(summaries)
+    round_ = game.start_game()
+    summaries.append(game.status_summary())
+    assert len(set(summaries)) == len(summaries)
+    for p in game.confirmed_players:
+        p.place_bid(0)
+        summaries.append(game.status_summary())
+        assert len(set(summaries)) == len(summaries)

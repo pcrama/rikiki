@@ -6,6 +6,7 @@ from typing import List, Optional, Set
 
 from flask import (Blueprint, abort, current_app, flash, jsonify,
                    redirect, render_template, request, url_for)
+import jinja2
 
 from . import models
 
@@ -108,6 +109,44 @@ def other_player_status(p: models.Player):
             'bid': p.bid}
 
 
+JINJA2_ENV = jinja2.Environment(autoescape=jinja2.select_autoescape(
+    enabled_extensions=('html', 'xml'),
+    default_for_string=True,
+))
+CONFIRMING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
+    '<li id="{{ player.id }}" class="{{ player_class }}">'
+    '{{ player.name }}'
+    '</li>'
+)
+BIDDING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
+    '<li id="{{ player.id }}" class="{{ player_class }}">'
+    '<span class="player_name">{{ player.name }}</span> has '
+    '{{ player.card_count }} cards and has not bid yet.'
+    '</li>'
+)
+HAS_BID_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
+    '<li id="{{ player.id }}" class="{{ player_class }}">'
+    '<span class="player_name">{{ player.name }}</span> has '
+    '{{ player.card_count }} cards '
+    'and bid for {{player.bid}} tricks.'
+    '</li>'
+)
+
+
+def player_css_class(p1, p2, cp=None):
+    """Get CSS classes for player.
+
+    For each page, there is a reference player (p2, associated to the
+    secret in the URL).  Information for that player should be styled
+    with 'self_player'.  All other players get 'other_player'.
+
+    If cp is defined, it indicates which p1 should get the
+    'current_player' class extra.
+    """
+    return ("self_player" if p1 is p2 else "other_player") + (
+        " current_player" if p1 is cp else "")
+
+
 @bp.route('/<secret_id>/api/status/')
 @with_valid_game
 def api_status(secret_id='', game=None):
@@ -118,20 +157,37 @@ def api_status(secret_id='', game=None):
 
     if game.state == game.State.CONFIRMING:
         return jsonify({
-            'game_state': game.state,
+            'summary': game.status_summary(),
+            'game_state': ('Waiting for other players to join and '
+                           'organizer to start the game'),
             'id': player.id,
-            'players': [{'id': p.id, 'name': p.name}
-                        for p in game.players if p.is_confirmed]})
+            'players': [
+                {'id': p.id,
+                 'h': CONFIRMING_PLAYER_LI_FRAGMENT.render(
+                     player=p,
+                     player_class=player_css_class(p, player, None))}
+                for p in game.players if p.is_confirmed]})
     elif game.state == game.State.PLAYING:
+        total_bids = sum((p.bid or 0) for p in game.confirmed_players)
         return jsonify({
-            'game_state': game.state,
+            'summary': game.status_summary(),
+            'game_state': ('Bidding'
+                           if game.round.state == game.round.State.BIDDING
+                           else 'Playing'
+                           ) + (f' with {game.current_card_count} cards '
+                                f'and {total_bids} tricks bid so far.'),
             'id': player.id,
             'cards': player.cards,
             'round': {'state': game.round.state,
                       'current_player': game.round.current_player.id},
             'players': [
-                {'id': p.id, 'name': p.name, 'cards': p.card_count,
-                 'bid': p.bid, 'tricks': p.tricks}
+                {'id': p.id,
+                 'h': (BIDDING_PLAYER_LI_FRAGMENT
+                       if p.bid is None
+                       else HAS_BID_PLAYER_LI_FRAGMENT).render(
+                     player=p,
+                     player_class=player_css_class(
+                         p, player, game.round.current_player))}
                 for p in game.confirmed_players]})
     result = {
         'cards': player.cards,
