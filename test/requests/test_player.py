@@ -305,6 +305,30 @@ def test_api_status__game_started__lists_players_in_order(started_game, client):
             assert 'self_player' not in player_info['h']
 
 
+def test_api_status__save_bandwidth(started_game, client):
+    player = started_game.confirmed_players[0]
+    full_response = client.get(f'/player/{player.secret_id}/api/status/')
+    assert full_response.status_code == 200
+    assert full_response.is_json
+    full_status = full_response.get_json()
+    small_response = client.get(
+        f'/player/{player.secret_id}/api/status/{full_status["summary"]}/')
+    assert small_response.status_code == 200
+    assert small_response.is_json
+    small_status = small_response.get_json()
+    assert len(small_status) == 1
+    assert small_status['summary'] == full_status['summary']
+    player.place_bid(2)
+    next_response = client.get(
+        f'/player/{player.secret_id}/api/status/{full_status["summary"]}/')
+    assert next_response.status_code == 200
+    assert next_response.is_json
+    next_status = next_response.get_json()
+    assert len(next_status) > 1
+    assert next_status['summary'] != small_status['summary']
+    assert next_status['summary'] == started_game.status_summary()
+
+
 def test_api_status__bidding_process(started_game, client):
     players = started_game.confirmed_players
     for (idx, p) in enumerate(players):

@@ -148,16 +148,21 @@ def player_css_class(p1, p2, cp=None):
 
 
 @bp.route('/<secret_id>/api/status/')
+@bp.route('/<secret_id>/api/status/<previous_status_summary>/')
 @with_valid_game
-def api_status(secret_id='', game=None):
+def api_status(secret_id='', previous_status_summary='', game=None):
     """Return JSON formatted status for Player."""
     player = get_player(current_app, request, secret_id)
     if not player.is_confirmed:
         abort(404)
 
-    if game.state == game.State.CONFIRMING:
+    status_summary = game.status_summary()
+    if (status_summary == previous_status_summary) and (
+            previous_status_summary != ''):
+        return jsonify({'summary': status_summary})
+    elif game.state == game.State.CONFIRMING:
         return jsonify({
-            'summary': game.status_summary(),
+            'summary': status_summary,
             'game_state': ('Waiting for other players to join and '
                            'organizer to start the game'),
             'id': player.id,
@@ -170,7 +175,7 @@ def api_status(secret_id='', game=None):
     elif game.state == game.State.PLAYING:
         total_bids = sum((p.bid or 0) for p in game.confirmed_players)
         return jsonify({
-            'summary': game.status_summary(),
+            'summary': status_summary,
             'game_state': ('Bidding'
                            if game.round.state == game.round.State.BIDDING
                            else 'Playing'
