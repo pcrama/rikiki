@@ -155,6 +155,10 @@ async function updateGameStatusOrganizerDashboard(statusUrl) {
 
 function fillPlayerDashboardPlayerList(players, selfId, playersElt, callback) {
     clearElement(playersElt);
+    if (!players) {
+        return;
+    }
+
     players.forEach(player => {
         let {h: htmlToInsert} = player;
         playersElt.insertAdjacentHTML('beforeend', htmlToInsert);
@@ -163,13 +167,23 @@ function fillPlayerDashboardPlayerList(players, selfId, playersElt, callback) {
 
 let lastGameStatusSummary = null;
 
+function maybeJoin(url, trail) {
+    if (!trail) {
+        return url;
+    }
+
+    const leftPart = url.endsWith('/') ? url.slice(0, -1): url;
+    const rightPart = trail.startsWith('/') ? trail.substring(1): trail;
+    return leftPart + '/' + rightPart;
+}
+
 async function updatePlayerDashboard(statusUrl) {
-    const response = await fetch(statusUrl, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'same-origin',
-            redirect: 'follow'});
+    const response = await fetch(maybeJoin(statusUrl, lastGameStatusSummary + '/'), {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        redirect: 'follow'});
     if (!response.ok) {
         const nav = document.getElementsByTagName('nav');
         if (nav) {
@@ -180,17 +194,24 @@ async function updatePlayerDashboard(statusUrl) {
     }
     const data = await response.json();
     const newStatusSummary = data.summary;
-    if (newStatusSummary || newStatusSummary != lastGameStatusSummary) {
+    if (newStatusSummary && newStatusSummary != lastGameStatusSummary) {
         // change in status -> display update
         const gameState = data.game_state;
         const selfId = data.id;
         const players = data.players;
+        const cards = data.cards;
         const gameStatusElt = document.getElementById('game_status');
         const playersElt = document.getElementById('players');
         const cardsElt = document.getElementById('cards');
         const statsElt = document.getElementById('stats');
         clearElement(gameStatusElt);
-        gameStatusElt.insertAdjacentHTML('beforeend', gameState);
+        if (gameState) {
+            gameStatusElt.insertAdjacentHTML('beforeend', gameState);
+        }
+        clearElement(cardsElt);
+        if (cards) {
+            cardsElt.insertAdjacentHTML('beforeend', cards);
+        }
         fillPlayerDashboardPlayerList(players, selfId, playersElt);
     }
     lastGameStatusSummary = newStatusSummary;
