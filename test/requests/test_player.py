@@ -276,15 +276,27 @@ def test_api_status__game_started__lists_players_in_order(started_game, client):
     assert response.status_code == 200
     assert response.is_json
     status = response.get_json()
-    assert len(status) == 6
+    assert len(status) == 7
     assert status['summary'] == started_game.status_summary()
     assert 'Bidding' in status['game_state']
     assert f'with {started_game.current_card_count} cards' in status['game_state']
     assert f' 0 tricks bid so far' in status['game_state']
+    assert f'cards/card{started_game.round.trump:02d}' in status['trump']
     assert status['round'] == {
         'state': models.Round.State.BIDDING,
         'current_player': started_game.confirmed_players[0].id}
-    assert status['cards'] == player.cards
+    # check player's hand display:
+    cards_positions = [(c, p)
+                       for (c, p) in (
+        (c, status['cards'].find(f'cards/card{c:02d}.png'))
+        for c in player.cards)
+        if p > -1]
+    # ... all cards are there ...
+    assert len(cards_positions) == len(player.cards)
+    # ... and displayed in sorted order (from highest to lowest)
+    cards_positions.sort(key=lambda cp: cp[1])
+    assert all(c1 > c2 for ((c1, _), (c2, _)) in zip(
+        cards_positions[:-1], cards_positions[1:]))
     assert status['id'] == player.id
     for (idx, player_info) in enumerate(status['players']):
         assert len(player_info) == 2
@@ -337,12 +349,13 @@ def test_api_status__bidding_process(started_game, client):
         assert response.status_code == 200
         assert response.is_json
         status = response.get_json()
-        assert len(status) == 6
+        assert len(status) == 7
         assert status['summary'] == started_game.status_summary()
         assert ('Bidding' if idx < (len(players) - 1)
                 else 'Playing') in status['game_state']
         assert f'with {started_game.current_card_count} cards' in status['game_state']
         assert f' {idx + 1} tricks bid so far' in status['game_state']
+        assert f'cards/card{started_game.round.trump:02d}' in status['trump']
         if idx < len(players) - 1:
             assert status['round'] == {
                 'state': int(models.Round.State.BIDDING),
@@ -351,7 +364,8 @@ def test_api_status__bidding_process(started_game, client):
             assert status['round'] == {
                 'state': int(models.Round.State.PLAYING),
                 'current_player': started_game.confirmed_players[0].id}
-        assert status['cards'] == p.cards
+        assert all(
+            f'cards/card{c:02d}.png' in status['cards'] for c in p.cards)
         assert status['id'] == p.id
         for (idx2, player_info) in enumerate(status['players']):
             assert len(player_info) == 2

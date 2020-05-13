@@ -131,6 +131,17 @@ HAS_BID_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     'and bid for {{player.bid}} tricks.'
     '</li>'
 )
+PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
+    '<span class="playing_card" id="c{{ card }}"><img src="'
+    '{{ card_url }}"></li>')
+
+
+def render_player_card_fragment(card):
+    """Render PLAYER_CARD_FRAGMENT."""
+    return PLAYER_CARD_FRAGMENT.render(
+        card=f'{card:02d}',
+        card_url=url_for('static',
+                         filename=f'cards/card{card:02d}.png'))
 
 
 def player_css_class(p1, p2, cp=None):
@@ -174,6 +185,9 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                 for p in game.players if p.is_confirmed]})
     elif game.state == game.State.PLAYING:
         total_bids = sum((p.bid or 0) for p in game.confirmed_players)
+        cards = [render_player_card_fragment(card)
+                 for card in player.cards]
+        cards.sort(reverse=True)
         return jsonify({
             'summary': status_summary,
             'game_state': ('Bidding'
@@ -182,7 +196,11 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                            ) + (f' with {game.current_card_count} cards '
                                 f'and {total_bids} tricks bid so far.'),
             'id': player.id,
-            'cards': player.cards,
+            'cards': ''.join(cards),
+            'trump': ('No trump'
+                      if game.round.trump is None
+                      else ('Trump: '
+                            + render_player_card_fragment(game.round.trump))),
             'round': {'state': game.round.state,
                       'current_player': game.round.current_player.id},
             'players': [

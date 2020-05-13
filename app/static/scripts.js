@@ -200,10 +200,12 @@ async function updatePlayerDashboard(statusUrl) {
         const selfId = data.id;
         const players = data.players;
         const cards = data.cards;
+        const trump = data.trump;
         const gameStatusElt = document.getElementById('game_status');
         const playersElt = document.getElementById('players');
         const cardsElt = document.getElementById('cards');
         const statsElt = document.getElementById('stats');
+        const trumpElt = document.getElementById('trump');
         clearElement(gameStatusElt);
         if (gameState) {
             gameStatusElt.insertAdjacentHTML('beforeend', gameState);
@@ -213,6 +215,11 @@ async function updatePlayerDashboard(statusUrl) {
             cardsElt.insertAdjacentHTML('beforeend', cards);
         }
         fillPlayerDashboardPlayerList(players, selfId, playersElt);
+        if (trump) {
+            trumpElt.innerHTML = trump;
+        } else {
+            clearElement(trumpElt);
+        }
     }
     lastGameStatusSummary = newStatusSummary;
     updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
