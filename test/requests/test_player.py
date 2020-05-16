@@ -155,6 +155,90 @@ def test_player__confirmation__invalidates_confirmation_link(first_player, clien
     assert response.status_code == 403
 
 
+def test_place_bid__post_only(first_player, client):
+    response = client.get('/player/place/bid/', follow_redirects=True)
+    assert response.status_code == 405
+    first_player.confirm('')
+    response = client.get('/player/place/bid/', follow_redirects=True)
+    assert response.status_code == 405
+
+
+def test_place_bid__player_must_be_confirmed(started_game, client):
+    unconfirmed_player = next(
+        p for p in started_game.players if not p.is_confirmed)
+    response = client.post('/player/place/bid/',
+                           data={'secret_id': unconfirmed_player.secret_id},
+                           follow_redirects=True)
+    assert response.status_code == 404
+
+
+def test_place_bid__game_or_round_bad_state__404(confirmed_first_player, game, client):
+    response = client.post('/player/place/bid/',
+                           data={'secret_id': confirmed_first_player.secret_id},
+                           follow_redirects=True)
+    assert response.status_code == 404
+    for p in game.players:
+        if not p.is_confirmed:
+            p.confirm('')
+    game.start_game()
+    for p in game.confirmed_players:
+        p.place_bid(0)
+    for p in game.confirmed_players:
+        response = client.post('/player/place/bid/',
+                               data={'secret_id': p.secret_id},
+                               follow_redirects=True)
+        assert response.status_code == 404
+
+
+def test_place_bid__bad_secret__403(confirmed_first_player, game, client):
+    response = client.post(
+        '/player/place/bid/',
+        data={'secret_id': 'bad_secret'},
+        follow_redirects=True)
+    assert response.status_code == 403
+    response = client.post(
+        '/player/place/bid/',
+        data={},
+        follow_redirects=True)
+    assert response.status_code == 403
+
+
+def test_place_bid__happy_path(started_game, client):
+    round = started_game.round
+    assert round.state == models.Round.State.BIDDING
+    while round.state == models.Round.State.BIDDING:
+        p = round.current_player
+        response = client.post(
+            '/player/place/bid/',
+            data={'secret_id': p.secret_id, 'bidInput': 1})
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert status['ok']
+        assert len(status) == 1
+        assert p.bid == 1
+
+
+def test_place_bid__out_of_order(started_game, client):
+    round = started_game.round
+    assert round.state == models.Round.State.BIDDING
+    tested = 0
+    for p in started_game.confirmed_players:
+        if p is round.current_player:
+            continue
+        tested += 1
+        response = client.post(
+            '/player/place/bid/',
+            data={'secret_id': p.secret_id, 'bidInput': 1})
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert not status['ok']
+        assert round.current_player.name in status['error']
+        assert p.name in status['error']
+    assert tested > 0
+
+
 def test_api_status__wrong_secret__403(confirmed_first_player, client):
     response = client.get(
         f'/player/wrong_secret/api/status/', follow_redirects=True)

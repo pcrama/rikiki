@@ -53,10 +53,87 @@ def while_bidding(driver, organizer_secret):
                 assert 'current_player' in class_list
             else:
                 assert 'current_player' not in class_list
-        if dashboard_id == first_player_id:
-            pass  # check that bidding UI is there
-        else:
-            pass  # check that bidding UI is not there
+        for id_ in ('bidInput', 'bidSubmit'):
+            bid_elt = driver.find_element_by_id(id_)
+            if dashboard_id == first_player_id:
+                assert bid_elt.is_displayed()
+            else:
+                assert not bid_elt.is_displayed()
+    # Return to first player to actually place a bid
+    driver.get(first_player_url)
+    # wait for player's dashboard to load game state
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.ID, first_player_id)))
+    # place bid for first player
+    bid_input = driver.find_element_by_id('bidInput')
+    bid_submit = driver.find_element_by_id('bidSubmit')
+    bid_input.click()
+    bid_input.clear()
+    bid_input.send_keys('4')
+    bid_submit.click()
+    second_player_id, (_name, second_player_url) = list(players.items())[1]
+    # player dashboard must update with next current_player, ...
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.XPATH,
+         f'//li[@id="{second_player_id}" and ' +
+         'contains(concat(" ",normalize-space(@class)," ")," current_player ")]')))
+    # ... bidding UI must disappear, ...
+    for id_ in ('bidInput', 'bidSubmit'):
+        bid_elt = driver.find_element_by_id(id_)
+    # ... bid must be visible
+    assert 'bid for 4 tricks' in driver.find_element_by_id(
+        first_player_id).text.lower()
+    # check second player is allowed to bid:
+    driver.get(second_player_url)
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.ID, second_player_id)))
+    # second player sees first player's bid
+    p_li = driver.find_element_by_id(first_player_id)
+    assert 'current_player' not in p_li.get_attribute('class').split()
+    assert 'bid for 4 tricks' in p_li.text.lower()
+    for id_ in ('bidInput', 'bidSubmit'):
+        bid_elt = driver.find_element_by_id(id_)
+        assert bid_elt.is_displayed()
+    # but when bidding for more tricks than she has cards ...
+    bid_input = driver.find_element_by_id('bidInput')
+    bid_submit = driver.find_element_by_id('bidSubmit')
+    bid_input.click()
+    bid_input.clear()
+    bid_input.send_keys('44')
+    bid_submit.click()
+    # ... an error message appears ...
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.XPATH,
+         f'//div[@id="bidError" and ' +
+         'contains(concat(" ",normalize-space(@class)," ")," error ")]')))
+    bid_error_msg = driver.find_element_by_id('bidError')
+    assert '44' in bid_error_msg.text
+    assert 'error' in bid_error_msg.get_attribute('class').split()
+    # ... but can still place a valid bid
+    bid_input = driver.find_element_by_id('bidInput')
+    bid_submit = driver.find_element_by_id('bidSubmit')
+    bid_input.click()
+    bid_input.clear()
+    bid_input.send_keys('5')
+    bid_submit.click()
+    third_player_id, (_name, third_player_url) = list(players.items())[1]
+    # player dashboard must update with next current_player:
+    p_li = WebDriverWait(driver, 5).until(EC.presence_of_element_located(
+        (By.XPATH,
+         f'//li[@id="{third_player_id}" and ' +
+         'contains(concat(" ",normalize-space(@class)," ")," current_player ")]')))
+    assert 'not bid' in p_li.text
+    p_li = WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.XPATH,
+         f'//li[@id="{second_player_id}" and ' +
+         'not(contains(concat(" ",normalize-space(@class)," ")," current_player "))]')))
+    assert ' 5 ' in p_li.text
+    # bid numbers are updated/correct
+    # this is a race between JS in browser to copy information from
+    # server into page and selenium:
+    # assert ' 4 ' in driver.find_element_by_id(first_player_id).text
+    # assert ' 5 ' in driver.find_element_by_id(second_player_id).text
+    # assert ' 9 ' in driver.find_element_by_id('game_status').text
 
 
 def while_others_confirm(driver, organizer_secret):
@@ -113,6 +190,9 @@ def while_others_confirm(driver, organizer_secret):
         else:
             with pytest.raises(NoSuchElementException):
                 driver.find_element_by_id(p_id)
+    for id_ in ('bidInput', 'bidSubmit'):
+        bid_elt = driver.find_element_by_id(id_)
+        assert not bid_elt.is_displayed()
     # confirm yet another player
     yet_another_player = player_unconfirmed_names[1]
     with temporary_new_tab(driver, player_dict[yet_another_player][1]):

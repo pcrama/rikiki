@@ -41,9 +41,11 @@ function gameStateName(x) {
 }
 
 
+const ROUND_STATE_BIDDING = 100;
+
 function roundStateName(x) {
     switch (x) {
-    case 100: return "Bidding";
+    case ROUND_STATE_BIDDING: return "Bidding";
     case 101: return "Playing";
     case 102: return "Done";
     default: return `Error!  scripts.js and Round.State are out of sync: ${x} is unknown.`;
@@ -174,11 +176,22 @@ function maybeJoin(url, trail) {
 
     const leftPart = url.endsWith('/') ? url.slice(0, -1): url;
     const rightPart = trail.startsWith('/') ? trail.substring(1): trail;
-    return leftPart + '/' + rightPart;
+    return leftPart + '/' + rightPart + (trail.endsWith('/') ? '' : '/');
+}
+
+function extractPlayerSecret(url) {
+    const startMarker = '/player/';
+    const secretLength = 32;
+    const startIdx = url.indexOf(startMarker);
+    if (startIdx < 0) {
+        return '';
+    }
+
+    return url.substr(startIdx + startMarker.length, 32);
 }
 
 async function updatePlayerDashboard(statusUrl) {
-    const response = await fetch(maybeJoin(statusUrl, lastGameStatusSummary + '/'), {
+    const response = await fetch(maybeJoin(statusUrl, lastGameStatusSummary), {
         method: 'GET',
         mode: 'cors',
         cache: 'no-cache',
@@ -220,8 +233,48 @@ async function updatePlayerDashboard(statusUrl) {
         } else {
             clearElement(trumpElt);
         }
+        const round = data.round;
+        const roundState = data.round && data.round.state;
+        const currentPlayerId = data.round && data.round.current_player;
+        const tableElt = document.getElementById('table');
+        clearElement(tableElt);
+        const bidElt = document.getElementById('bid');
+        if (roundState == ROUND_STATE_BIDDING && currentPlayerId == selfId) {
+            bidElt.onsubmit = async function submitBid(e) {
+                e.preventDefault()
+                const bidError = document.getElementById('bidError');
+                clearElement(bidError);
+                bidError.classList.remove('error');
+                const bidUrl = '/player/place/bid/';
+                const response = await fetch(bidUrl, {
+                    method: 'POST',
+                    body: new FormData(bidElt),
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    credentials: 'same-origin',
+                    redirect: 'follow'});
+                if (!response.ok) {
+                    bidError.classList.add('error');
+                    bidError.textContent = `${response.status}, ${response.statusText}`;
+                    return;
+                }
+                const data = await response.json();
+                if (data.ok) {
+                    bidElt.style.display = 'none';
+                } else {
+                    bidError.classList.add('error');
+                    bidError.textContent = data.error;
+                }
+            };
+            bidElt.style.display = "inline";
+            // const bidInput = document.getElementById('bidInput');
+            // bidInput.max = ???;
+        } else {
+            bidElt.style.display = "none";
+        }
     }
     lastGameStatusSummary = newStatusSummary;
     updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
 }
+

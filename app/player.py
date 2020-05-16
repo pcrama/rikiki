@@ -100,6 +100,27 @@ def player(secret_id='', game=None):
     return render_template('player/player.html', game=game, player=player)
 
 
+@bp.route('/place/bid/', methods=('POST',))
+@with_valid_game
+def place_bid(secret_id='', previous_status_summary='', game=None):
+    """Control Player model for the players: place a bid."""
+    player = get_player(current_app, request, secret_id)
+    if (not player.is_confirmed or
+        (game is None) or
+        (game.state != models.Game.State.PLAYING) or
+        (game.round is None) or
+            (game.round.state != models.Round.State.BIDDING)):
+        abort(404)
+    # just let it crash if form data is invalid (missing or not a number)
+    bid = int(request.form.get('bidInput'))
+    try:
+        player.place_bid(bid)
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+    else:
+        return jsonify({'ok': True})
+
+
 def other_player_status(p: models.Player):
     """Gather information about other Players."""
     return {'id': p.id,
