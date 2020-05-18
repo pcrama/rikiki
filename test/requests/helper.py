@@ -85,6 +85,13 @@ def started_game(game):
     return game
 
 
+@pytest.fixture
+def game_with_started_round(started_game):
+    for (idx, p) in enumerate(started_game.confirmed_players):
+        p.place_bid(idx % min(3, started_game.current_card_count + 1))
+    return started_game
+
+
 def rendered_template(response, t):
     """Return True if a template was rendered."""
     marker = {

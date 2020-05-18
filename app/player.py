@@ -121,6 +121,30 @@ def place_bid(secret_id='', previous_status_summary='', game=None):
         return jsonify({'ok': True})
 
 
+@bp.route('/play/card/', methods=('POST',))
+@with_valid_game
+def play_card(secret_id='', previous_status_summary='', game=None):
+    """Control Player model for the players: place a bid."""
+    player = get_player(current_app, request, secret_id)
+    # TODO: this logic belongs in the model?
+    if (not player.is_confirmed or
+        (game is None) or
+        (game.state != models.Game.State.PLAYING) or
+        (game.round is None) or
+            (game.round.state != models.Round.State.PLAYING)):
+        abort(404)
+    # just let it crash if form data is invalid (missing, not a number
+    # or out of card range): normal UI usage should only send a
+    # corrrect card number
+    card = models.Card(int(request.form.get('card')))
+    try:
+        player.play_card(card)
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+    else:
+        return jsonify({'ok': True})
+
+
 def other_player_status(p: models.Player):
     """Gather information about other Players."""
     return {'id': p.id,
@@ -152,15 +176,28 @@ HAS_BID_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     'and bid for {{player.bid}} tricks.'
     '</li>'
 )
+IS_PLAYING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
+    '<li id="{{ player.id }}" class="{{ player_class }}">'
+    '<span class="player_name">{{ player.name }}</span> has '
+    '{{ player.card_count }} cards, '
+    'bid for {{player.bid}} tricks and '
+    'won {{player.tricks}} tricks.'
+    '</li>'
+)
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
-    '<span class="playing_card" id="c{{ card }}"><img src="'
-    '{{ card_url }}"></li>')
+    '<span class="playing_card" id="{{ card_id }}"><img src="'
+    '{{ card_url }}"></span>')
+
+
+def card_html_id(card):
+    """Return HTML id for element containing given card."""
+    return f'c{card:02d}'
 
 
 def render_player_card_fragment(card):
     """Render PLAYER_CARD_FRAGMENT."""
     return PLAYER_CARD_FRAGMENT.render(
-        card=f'{card:02d}',
+        card_id=card_html_id(card),
         card_url=url_for('static',
                          filename=f'cards/card{card:02d}.png'))
 
@@ -177,6 +214,29 @@ def player_css_class(p1, p2, cp=None):
     """
     return ("self_player" if p1 is p2 else "other_player") + (
         " current_player" if p1 is cp else "")
+
+
+def player_html(
+        subject: models.Player,
+        viewer: models.Player,
+        current_player: models.Player,
+        round_state: models.Round.State
+) -> str:
+    """Return HTML content describing the Player's status."""
+    if subject.bid is None:
+        return BIDDING_PLAYER_LI_FRAGMENT.render(
+            player=subject,
+            player_class=player_css_class(
+                subject, viewer, current_player))
+    if round_state == models.Round.State.BIDDING:
+        return HAS_BID_PLAYER_LI_FRAGMENT.render(
+            player=subject,
+            player_class=player_css_class(
+                subject, viewer, current_player))
+    return IS_PLAYING_PLAYER_LI_FRAGMENT.render(
+        player=subject,
+        player_class=player_css_class(
+            subject, viewer, current_player))
 
 
 @bp.route('/<secret_id>/api/status/')
@@ -204,18 +264,21 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                      player=p,
                      player_class=player_css_class(p, player, None))}
                 for p in game.players if p.is_confirmed]})
-    elif game.state == game.State.PLAYING:
+    elif game.state == models.Game.State.PLAYING:
         total_bids = sum((p.bid or 0) for p in game.confirmed_players)
-        cards = [render_player_card_fragment(card)
-                 for card in player.cards]
+        cards = [render_player_card_fragment(card) for card in player.cards]
         cards.sort(reverse=True)
-        return jsonify({
+        result = {
             'summary': status_summary,
-            'game_state': ('Bidding'
-                           if game.round.state == game.round.State.BIDDING
-                           else 'Playing'
-                           ) + (f' with {game.current_card_count} cards '
-                                f'and {total_bids} tricks bid so far.'),
+            'game_state': (
+                'Bidding'
+                if game.round.state == models.Round.State.BIDDING
+                else 'Playing'
+            ) + (f' with {game.current_card_count} cards '
+                 f'and {total_bids} tricks bid'
+                 ) + (' so far.'
+                      if game.round.state == models.Round.State.BIDDING
+                      else '.'),
             'id': player.id,
             'cards': ''.join(cards),
             'trump': ('No trump'
@@ -226,13 +289,26 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                       'current_player': game.round.current_player.id},
             'players': [
                 {'id': p.id,
-                 'h': (BIDDING_PLAYER_LI_FRAGMENT
-                       if p.bid is None
-                       else HAS_BID_PLAYER_LI_FRAGMENT).render(
-                     player=p,
-                     player_class=player_css_class(
-                         p, player, game.round.current_player))}
-                for p in game.confirmed_players]})
+                 'h': player_html(
+                     subject=p,
+                     viewer=player,
+                     current_player=game.round.current_player,
+                     round_state=game.round.state)}
+                for p in game.confirmed_players]}
+        if game.round.state == models.Round.State.PLAYING:
+            result['table'] = ''.join(render_player_card_fragment(c)
+                                      for c in game.round.current_trick)
+            result['playable_cards'] = [
+                card_html_id(card) for card in player.cards
+                if models.card_allowed(
+                    card, hand=player.cards, table=game.round.current_trick)
+            ] if player is game.round.current_player \
+                else []
+        elif game.round.state == models.Round.State.DONE:
+            result['table'] = ''.join(render_player_card_fragment(c)
+                                      for c in game.round.current_trick)
+            result['playable_cards'] = []
+        return jsonify(result)
     result = {
         'cards': player.cards,
         'bid': player.bid,

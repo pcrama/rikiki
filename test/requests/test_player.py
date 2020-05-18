@@ -18,6 +18,7 @@ from .helper import (
     confirmed_last_player,
     first_player,
     game,
+    game_with_started_round,
     rendered_template,
     rikiki_app,
     started_game,
@@ -204,10 +205,10 @@ def test_place_bid__bad_secret__403(confirmed_first_player, game, client):
 
 
 def test_place_bid__happy_path(started_game, client):
-    round = started_game.round
-    assert round.state == models.Round.State.BIDDING
-    while round.state == models.Round.State.BIDDING:
-        p = round.current_player
+    round_ = started_game.round
+    assert round_.state == models.Round.State.BIDDING
+    while round_.state == models.Round.State.BIDDING:
+        p = round_.current_player
         response = client.post(
             '/player/place/bid/',
             data={'secret_id': p.secret_id, 'bidInput': 1})
@@ -220,11 +221,11 @@ def test_place_bid__happy_path(started_game, client):
 
 
 def test_place_bid__out_of_order(started_game, client):
-    round = started_game.round
-    assert round.state == models.Round.State.BIDDING
+    round_ = started_game.round
+    assert round_.state == models.Round.State.BIDDING
     tested = 0
     for p in started_game.confirmed_players:
-        if p is round.current_player:
+        if p is round_.current_player:
             continue
         tested += 1
         response = client.post(
@@ -234,7 +235,97 @@ def test_place_bid__out_of_order(started_game, client):
         assert response.is_json
         status = response.get_json()
         assert not status['ok']
-        assert round.current_player.name in status['error']
+        assert round_.current_player.name in status['error']
+        assert p.name in status['error']
+    assert tested > 0
+
+
+def test_play_card__post_only(first_player, client):
+    response = client.get('/player/play/card/', follow_redirects=True)
+    assert response.status_code == 405
+    first_player.confirm('')
+    response = client.get('/player/play/card/', follow_redirects=True)
+    assert response.status_code == 405
+
+
+def test_play_card__player_must_be_confirmed(started_game, client):
+    unconfirmed_player = next(
+        p for p in started_game.players if not p.is_confirmed)
+    response = client.post('/player/play/card/',
+                           data={'secret_id': unconfirmed_player.secret_id},
+                           follow_redirects=True)
+    assert response.status_code == 404
+
+
+def test_play_card__game_or_round_bad_state__404(confirmed_first_player, game, client):
+    for p in game.players:
+        if not p.is_confirmed:
+            p.confirm('')
+        response = client.post('/player/play/card/',
+                               data={'secret_id': p.secret_id,
+                                     'card': '0'},
+                               follow_redirects=True)
+        assert response.status_code == 404
+    game.start_game()
+    players = game.confirmed_players
+    round_ = game.round
+    for idx, p in enumerate(players):
+        p.place_bid(0)
+        if idx < len(players) - 1:
+            response = client.post('/player/play/card/',
+                                   data={'secret_id': p.secret_id,
+                                         'card': int(p.cards[0])},
+                                   follow_redirects=True)
+            assert response.status_code == 404
+
+
+def test_play_card__bad_secret__403(confirmed_first_player, game_with_started_round, client):
+    response = client.post(
+        '/player/play/card/',
+        data={'secret_id': 'bad_secret',
+              'card': int(confirmed_first_player.cards[0])},
+        follow_redirects=True)
+    assert response.status_code == 403
+    response = client.post(
+        '/player/play/card/',
+        data={'card': int(confirmed_first_player.cards[0])},
+        follow_redirects=True)
+    assert response.status_code == 403
+
+
+def test_play_card__happy_path(game_with_started_round, client):
+    round_ = game_with_started_round.round
+    assert round_.state == models.Round.State.PLAYING
+    for p in game_with_started_round.confirmed_players:
+        card = next(c for c in p.cards
+                    if models.card_allowed(c, p.cards, round_.current_trick))
+        response = client.post(
+            '/player/play/card/',
+            data={'secret_id': p.secret_id, 'card': int(card)})
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert status['ok']
+        assert len(status) == 1
+        assert card not in p.cards
+
+
+def test_play_card__out_of_order(game_with_started_round, client):
+    round_ = game_with_started_round.round
+    assert round_.state == models.Round.State.PLAYING
+    tested = 0
+    for p in game_with_started_round.confirmed_players:
+        if p is round_.current_player:
+            continue
+        tested += 1
+        response = client.post(
+            '/player/play/card/',
+            data={'secret_id': p.secret_id, 'card': int(p.cards[0])})
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert not status['ok']
+        assert round_.current_player.name in status['error']
         assert p.name in status['error']
     assert tested > 0
 
@@ -433,12 +524,18 @@ def test_api_status__bidding_process(started_game, client):
         assert response.status_code == 200
         assert response.is_json
         status = response.get_json()
-        assert len(status) == 7
+        if idx < len(players) - 1:
+            # still at least one more player has to bid -> we are
+            # still in Round.State.BIDDING
+            assert 'Bidding' in status['game_state']
+            assert len(status) == 7
+            assert f' {idx + 1} tricks bid so far' in status['game_state']
+        else:
+            # now in Round.State.PLAYING state.  More detailed
+            # validations should be in another test.
+            assert 'Playing' in status['game_state']
         assert status['summary'] == started_game.status_summary()
-        assert ('Bidding' if idx < (len(players) - 1)
-                else 'Playing') in status['game_state']
         assert f'with {started_game.current_card_count} cards' in status['game_state']
-        assert f' {idx + 1} tricks bid so far' in status['game_state']
         assert f'cards/card{started_game.round.trump:02d}' in status['trump']
         if idx < len(players) - 1:
             assert status['round'] == {
@@ -463,6 +560,68 @@ def test_api_status__bidding_process(started_game, client):
                 assert f'bid for {started_game.confirmed_players[idx2].bid} tricks' in player_info['h']
             else:
                 assert 'not bid yet' in player_info['h']
+
+
+def test_api_status__playing(game_with_started_round, client):
+    game = game_with_started_round
+    round_ = game.round
+    players = game.confirmed_players
+    all_cards_at_start = [c for p in players for c in p.cards]
+    # Verify preconditions
+    assert game.state == models.Game.State.PLAYING and round_.state == models.Round.State.PLAYING
+    # Verify response for all players while all players play the first
+    # trick of the first round.  One property must hold: all cards of
+    # the players + all cards in the current trick must always be the
+    # same set.
+    for (idx, card_placer) in enumerate(players):
+        observed_table = []  # overwritten later
+        all_cards_in_hands = []
+        for p in players:
+            response = client.get(f'/player/{p.secret_id}/api/status/')
+            assert response.status_code == 200
+            assert response.is_json
+            status = response.get_json()
+            assert 'summary' in status
+            assert 'playing' in status['game_state'].lower()
+            assert status['id'] == p.id
+            for (idx2, player_info) in enumerate(status['players']):
+                assert len(player_info) == 2
+                assert player_info['id'] == players[idx2].id
+                assert escape(players[idx2].name) in player_info['h']
+                assert f'<li id="{escape(players[idx2].id)}"' in player_info['h']
+                assert str(players[idx2].card_count) in player_info['h']
+            all_cards_in_hands.append(status['cards'])
+            if p is card_placer:
+                assert status['playable_cards'] != []
+                assert all(card_id in status['cards']
+                           for card_id in status['playable_cards'])
+            else:
+                assert status['playable_cards'] == []
+            assert all(
+                f'cards/card{c:02d}.png' in status['cards'] for c in p.cards)
+            assert f'cards/card{game.round.trump:02d}' in status['trump']
+            assert status['round'] == {'state': int(models.Round.State.PLAYING),
+                                       'current_player': players[idx].id}
+            if p is players[0]:
+                observed_table = status['table']
+            else:
+                # all players see the same table
+                assert status['table'] == observed_table
+            all_cards_in_hands += status['cards']
+            # no we know all keys we need are there, check there is nothing extra:
+            assert len(status) == 9
+        # check that no card was lost:
+        all_cards_html = observed_table + ''.join(all_cards_in_hands)
+        assert all(
+            f'cards/card{c:02d}.png' in all_cards_html for c in all_cards_at_start)
+        card = 0
+        while True:
+            try:
+                card_placer.play_card(card_placer.cards[card])
+            except models.ModelError:
+                card += 1
+            else:
+                break
 
 
 def test_organizer_url_for_unconfirmed_player(rikiki_app, first_player):

@@ -42,11 +42,12 @@ function gameStateName(x) {
 
 
 const ROUND_STATE_BIDDING = 100;
+const ROUND_STATE_PLAYING = 101;
 
 function roundStateName(x) {
     switch (x) {
     case ROUND_STATE_BIDDING: return "Bidding";
-    case 101: return "Playing";
+    case ROUND_STATE_PLAYING: return "Playing";
     case 102: return "Done";
     default: return `Error!  scripts.js and Round.State are out of sync: ${x} is unknown.`;
     }
@@ -219,6 +220,9 @@ async function updatePlayerDashboard(statusUrl) {
         const cardsElt = document.getElementById('cards');
         const statsElt = document.getElementById('stats');
         const trumpElt = document.getElementById('trump');
+        const round = data.round;
+        const roundState = data.round && data.round.state;
+        const currentPlayerId = data.round && data.round.current_player;
         clearElement(gameStatusElt);
         if (gameState) {
             gameStatusElt.insertAdjacentHTML('beforeend', gameState);
@@ -226,6 +230,47 @@ async function updatePlayerDashboard(statusUrl) {
         clearElement(cardsElt);
         if (cards) {
             cardsElt.insertAdjacentHTML('beforeend', cards);
+            if (roundState == ROUND_STATE_PLAYING) {
+                const secretId = extractPlayerSecret(statusUrl);
+                const playableCards = data.playable_cards || [];
+                for (let spanElt of cardsElt.getElementsByTagName('SPAN')) {
+                    spanElt.className = 'playing_card';
+                    if (playableCards.indexOf(spanElt.id) < 0) {
+                        spanElt.classList.add('unplayable_card');
+                        continue;
+                    }
+                    spanElt.classList.add('playable_card');
+                    spanElt.onclick = async function playCard(e) {
+                        e.preventDefault()
+                        const playError = document.getElementById('playError');
+                        clearElement(playError);
+                        playError.classList.remove('error');
+                        const playUrl = '/player/play/card/';
+                        let formData = new FormData();
+                        formData.append('secret_id', secretId);
+                        formData.append('card', spanElt.id.substr(1));
+                        console.log(spanElt);
+                        console.log(spanElt.id.substr(1));
+                        const response = await fetch(playUrl, {
+                            method: 'POST',
+                            body: formData,
+                            mode: 'cors',
+                            cache: 'no-cache',
+                            credentials: 'same-origin',
+                            redirect: 'follow'});
+                        if (!response.ok) {
+                            playError.classList.add('error');
+                            playError.textContent = `${response.status}, ${response.statusText}`;
+                            return;
+                        }
+                        const data = await response.json();
+                        if (!data.ok) {
+                            playError.classList.add('error');
+                            playError.textContent = data.error;
+                        }
+                    };
+                };
+            }
         }
         fillPlayerDashboardPlayerList(players, selfId, playersElt);
         if (trump) {
@@ -233,11 +278,11 @@ async function updatePlayerDashboard(statusUrl) {
         } else {
             clearElement(trumpElt);
         }
-        const round = data.round;
-        const roundState = data.round && data.round.state;
-        const currentPlayerId = data.round && data.round.current_player;
         const tableElt = document.getElementById('table');
         clearElement(tableElt);
+        if (roundState == ROUND_STATE_PLAYING) {
+            tableElt.insertAdjacentHTML('beforeend', data.table);
+        }
         const bidElt = document.getElementById('bid');
         if (roundState == ROUND_STATE_BIDDING && currentPlayerId == selfId) {
             bidElt.onsubmit = async function submitBid(e) {
@@ -277,4 +322,3 @@ async function updatePlayerDashboard(statusUrl) {
     updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
 }
-
