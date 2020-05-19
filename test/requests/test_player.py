@@ -295,10 +295,9 @@ def test_play_card__bad_secret__403(confirmed_first_player, game_with_started_ro
 
 def test_play_card__happy_path(game_with_started_round, client):
     round_ = game_with_started_round.round
-    assert round_.state == models.Round.State.PLAYING
+    assert round_.state == models.Round.State.PLAYING, "Test case precondition not met"
     for p in game_with_started_round.confirmed_players:
-        card = next(c for c in p.cards
-                    if models.card_allowed(c, p.cards, round_.current_trick))
+        card = p.playable_cards[0]
         response = client.post(
             '/player/play/card/',
             data={'secret_id': p.secret_id, 'card': int(card)})
@@ -308,6 +307,18 @@ def test_play_card__happy_path(game_with_started_round, client):
         assert status['ok']
         assert len(status) == 1
         assert card not in p.cards
+    assert round_.state == models.Round.State.BETWEEN_TRICKS, "Test case precondition not met"
+    p = round_.current_player
+    card = p.playable_cards[0]
+    response = client.post(
+        '/player/play/card/',
+        data={'secret_id': p.secret_id, 'card': int(card)})
+    assert response.status_code == 200
+    assert response.is_json
+    status = response.get_json()
+    assert status['ok']
+    assert len(status) == 1
+    assert card not in p.cards
 
 
 def test_play_card__out_of_order(game_with_started_round, client):
@@ -622,6 +633,79 @@ def test_api_status__playing(game_with_started_round, client):
                 card += 1
             else:
                 break
+    # now we should be in BETWEEN_TRICKS state, see test_api_status__between_tricks
+
+
+def test_api_status__between_tricks(game_with_started_round, client):
+    def find_by_id(status, id_):
+        return next(p for p in status['players'] if p['id'] == id_)
+    game = game_with_started_round
+    round_ = game.round
+    players = game.confirmed_players
+    for (idx, card_placer) in enumerate(players):
+        if idx == len(players) - 1:
+            # record last player status to observe differences between
+            # Round.State.PLAYING & Round.State.BETWEEN_TRICKS
+            response = client.get(
+                f'/player/{card_placer.secret_id}/api/status/')
+            last_status = response.get_json()
+        # play any card
+        card_idx = 0
+        while True:
+            card = card_placer.cards[card_idx]
+            try:
+                card_placer.play_card(card)
+            except models.ModelError:
+                card_idx += 1
+            else:
+                break
+    response = client.get(f'/player/{players[-1].secret_id}/api/status/')
+    assert response.status_code == 200
+    assert response.is_json
+    status = response.get_json()
+    assert len(status) == len(last_status)
+    assert len(status['round']) == len(last_status['round'])
+    assert status['round']['state'] == int(models.Round.State.BETWEEN_TRICKS)
+    trick_winner_id = status['round']['current_player']
+    trick_winner = game.player_by_id(trick_winner_id)
+    assert len(status['cards']) < len(last_status['cards'])
+    assert status['trump'] == last_status['trump']
+    assert status['game_state'].startswith(last_status['game_state'])
+    assert status['game_state'] != last_status['game_state']
+    assert trick_winner.name in status['game_state']
+    assert status['id'] == last_status['id']
+    assert len(status['players']) == len(last_status['players'])
+    if trick_winner_id == players[-1].id:
+        # trick winner is also last player with changed number of cards -> -1
+        assert sum(old == new
+                   for old, new in zip(last_status['players'], status['players'])
+                   ) == len(status['players']) - 1
+        assert len(status['playable_cards']) == len(
+            status['cards'].split('<img ')) - 1
+    else:
+        # assume that the difference is due to the trick count being increased
+        assert find_by_id(status, trick_winner_id) != find_by_id(
+            last_status, trick_winner_id)
+        assert sum(old == new
+                   for old, new in zip(last_status['players'], status['players'])
+                   ) == len(status['players']) - 2  # trick winner + last player with changed number of cards
+        assert status['playable_cards'] == []
+    assert status['summary'] != last_status['summary']
+    # the table contains as many cards as players ...
+    assert len(status['table'].split('<img ')) - 1 == len(status['players'])
+    # ... with all player's cards ...
+    assert status['table'].startswith(last_status['table'])
+    # ... even last player's:
+    assert f'card{card:02}.png"' in status['table'].split('<img ')[-1]
+    if trick_winner_id is not players[-1]:
+        # first player may play anything, already tested if
+        # trick_winner is current_player
+        response = client.get(f'/player/{trick_winner.secret_id}/api/status/')
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert len(status['playable_cards']) == len(
+            status['cards'].split('<img ')) - 1
 
 
 def test_organizer_url_for_unconfirmed_player(rikiki_app, first_player):

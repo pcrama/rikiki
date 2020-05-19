@@ -131,7 +131,9 @@ def play_card(secret_id='', previous_status_summary='', game=None):
         (game is None) or
         (game.state != models.Game.State.PLAYING) or
         (game.round is None) or
-            (game.round.state != models.Round.State.PLAYING)):
+            (game.round.state not in [
+                models.Round.State.PLAYING,
+                models.Round.State.BETWEEN_TRICKS])):
         abort(404)
     # just let it crash if form data is invalid (missing, not a number
     # or out of card range): normal UI usage should only send a
@@ -278,7 +280,10 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                  f'and {total_bids} tricks bid'
                  ) + (' so far.'
                       if game.round.state == models.Round.State.BIDDING
-                      else '.'),
+                      else ('.'
+                            if game.round.state == models.Round.State.PLAYING
+                            else (f'.  {game.round.current_player.name} won '
+                                  'the trick.'))),
             'id': player.id,
             'cards': ''.join(cards),
             'trump': ('No trump'
@@ -295,13 +300,12 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                      current_player=game.round.current_player,
                      round_state=game.round.state)}
                 for p in game.confirmed_players]}
-        if game.round.state == models.Round.State.PLAYING:
+        if game.round.state in [models.Round.State.PLAYING,
+                                models.Round.State.BETWEEN_TRICKS]:
             result['table'] = ''.join(render_player_card_fragment(c)
                                       for c in game.round.current_trick)
             result['playable_cards'] = [
-                card_html_id(card) for card in player.cards
-                if models.card_allowed(
-                    card, hand=player.cards, table=game.round.current_trick)
+                card_html_id(card) for card in player.playable_cards
             ] if player is game.round.current_player \
                 else []
         elif game.round.state == models.Round.State.DONE:

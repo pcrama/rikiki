@@ -4,6 +4,7 @@ from .player.test_player_confirmation import happy_path as test_player_confirmat
 
 from .player.test_player_dashboard import while_others_confirm as test_player_dashboard_while_others_confirm
 from .player.test_player_dashboard import while_bidding as test_player_dashboard_while_bidding
+from .player.test_player_dashboard import while_playing as test_player_dashboard_while_playing
 
 
 from .organizer.test_game_setup import define_players as test_game_setup_define_player

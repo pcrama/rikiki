@@ -155,6 +155,7 @@ def test_Round__play_card__validates_state(round_with_mock_confirmed_players):
 def test_Round__play_card__validates_card_count_of_all_players_at_end_of_round(
         round_with_bids_placed):
     (_, round_, mock_confirmed_players) = round_with_bids_placed
+    assert round_.state == Round.State.PLAYING, "precondition for test not met"
     for player in mock_confirmed_players:
         player.configure_mock(
             card_count=1 if player is mock_confirmed_players[0] else 0)
@@ -172,8 +173,8 @@ def test_Round__play_card__validates_card_count_of_all_players_at_end_of_round(
 def test_Round__play_card__validates_player(
         round_with_bids_placed):
     (_, round_, mock_confirmed_players) = round_with_bids_placed
-    assert round_._state == Round.State.PLAYING
     for player in mock_confirmed_players:
+        assert round_._state == Round.State.PLAYING
         for other_player in mock_confirmed_players:
             if other_player is not player:
                 with pytest.raises(OutOfTurnError):
@@ -181,7 +182,7 @@ def test_Round__play_card__validates_player(
         player.configure_mock(  # simulate player.play_card
             card_count=player.card_count - 1)
         round_.play_card(player, Card.ClubAce)
-    assert round_._state == Round.State.PLAYING
+    assert round_._state == Round.State.BETWEEN_TRICKS
 
 
 def test_Round__play_card__attributes_trick_after_all_played(
@@ -212,7 +213,17 @@ def test_Round__play_card__attributes_trick_after_all_played(
     players[0].add_trick.assert_not_called()
     players[1].add_trick.assert_called_with()
     players[2].add_trick.assert_not_called()
-    assert round_.current_trick == []  # Round automatically starts a new trick
+    assert round_.state == Round.State.BETWEEN_TRICKS
+    # Round allows to see the previous trick ...
+    assert round_.current_trick == [Card.Heart3, Card.Heart10, Card.Heart7]
+    # ... before automatically starting a new trick when the next card
+    # is played (by valid player):
+    assert round_.current_player is players[1]
+    with pytest.raises(OutOfTurnError):
+        mock_player_plays_card(players[0], Card.HeartAce)
+    assert round_.current_trick == [Card.Heart3, Card.Heart10, Card.Heart7]
+    mock_player_plays_card(players[1], Card.HeartKing)
+    assert round_.current_trick == [Card.HeartKing]
 
 
 def test_Round__play_card__goes_to_DONE_state_after_last_card(
@@ -222,11 +233,14 @@ def test_Round__play_card__goes_to_DONE_state_after_last_card(
         "Invalid initial state for test"
     for _ in range(mock_confirmed_players[0].card_count):
         for player in mock_confirmed_players:
-            player.configure_mock(  # simulate plater.play_card
+            player.configure_mock(  # simulate player.play_card
                 card_count=player.card_count - 1)
             round_.play_card(player, Card.HeartAce)
     assert round_._state == Round.State.DONE
     game.round_finished.assert_called_with()
+    # previous trick still visible
+    assert round_.current_trick == [
+        Card.HeartAce for _ in mock_confirmed_players]
 
 
 def test_Round__full_scenario(mock_confirmed_players):
@@ -245,15 +259,23 @@ def test_Round__full_scenario(mock_confirmed_players):
 
     # Simulate first trick
     mock_play_card(players[0], Card.Heart10, 1)
+    assert round_.current_trick == [Card.Heart10]
     mock_play_card(players[1], Card.HeartAce, 1)
+    assert round_.current_trick == [Card.Heart10, Card.HeartAce]
     mock_play_card(players[2], Card.Heart4, 1)
+    assert round_.current_trick == [Card.Heart10, Card.HeartAce, Card.Heart4]
+    assert round_._state == Round.State.BETWEEN_TRICKS
     players[1].add_trick.assert_called_with()
-    assert round_._state == Round.State.PLAYING
+    assert round_.current_player is players[1]
 
     # Simulate second trick
     mock_play_card(players[1], Card.Diamond4, 0)
+    assert round_.current_trick == [Card.Diamond4]
     mock_play_card(players[2], Card.Diamond10, 0)
+    assert round_.current_trick == [Card.Diamond4, Card.Diamond10]
     mock_play_card(players[0], Card.DiamondAce, 0)
+    assert round_.current_trick == [
+        Card.Diamond4, Card.Diamond10, Card.DiamondAce]
     players[0].add_trick.assert_called_with()
     assert round_._state == Round.State.DONE
     game.round_finished.assert_called_with()
@@ -280,7 +302,6 @@ def test_Round__status_summary():
             while idx < p.card_count:
                 try:
                     p.play_card(p.cards[idx])
-                    print(players[0].card_count)
                     break
                 except Exception:
                     idx += 1

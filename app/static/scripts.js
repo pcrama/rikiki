@@ -43,12 +43,14 @@ function gameStateName(x) {
 
 const ROUND_STATE_BIDDING = 100;
 const ROUND_STATE_PLAYING = 101;
+const ROUND_STATE_BETWEEN_TRICKS = 102;
 
 function roundStateName(x) {
     switch (x) {
     case ROUND_STATE_BIDDING: return "Bidding";
     case ROUND_STATE_PLAYING: return "Playing";
-    case 102: return "Done";
+    case ROUND_STATE_BETWEEN_TRICKS: return "Playing"; // a little white lie
+    case 103: return "Done";
     default: return `Error!  scripts.js and Round.State are out of sync: ${x} is unknown.`;
     }
 }
@@ -230,7 +232,7 @@ async function updatePlayerDashboard(statusUrl) {
         clearElement(cardsElt);
         if (cards) {
             cardsElt.insertAdjacentHTML('beforeend', cards);
-            if (roundState == ROUND_STATE_PLAYING) {
+            if (roundState == ROUND_STATE_PLAYING || roundState == ROUND_STATE_BETWEEN_TRICKS) {
                 const secretId = extractPlayerSecret(statusUrl);
                 const playableCards = data.playable_cards || [];
                 for (let spanElt of cardsElt.getElementsByTagName('SPAN')) {
@@ -280,7 +282,7 @@ async function updatePlayerDashboard(statusUrl) {
         }
         const tableElt = document.getElementById('table');
         clearElement(tableElt);
-        if (roundState == ROUND_STATE_PLAYING) {
+        if (roundState == ROUND_STATE_PLAYING || roundState == ROUND_STATE_BETWEEN_TRICKS) {
             tableElt.insertAdjacentHTML('beforeend', data.table);
         }
         const bidElt = document.getElementById('bid');

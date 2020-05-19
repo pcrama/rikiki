@@ -181,16 +181,21 @@ The ~Round~ only maintains the cards on the table of the current trick.
 #+BEGIN_SRC plantuml :file doc/models_round_state_diagram.png
   hide empty description
   left to right direction
-  [*] --> bidding : _~_init~_~_ with  //n//\nconfirmed players,\n//m// cards per player
+  [*] --> bidding : _~_init~_~_ with  //n//\nconfirmed players,\n//c// cards per player
   bidding --> bidding : //n - 1// times\nplace_bid
   bidding --> playing : //n//th time\nplace_bid
-  playing --> playing : //n * m - 1// times\nplay_card
-  playing --> done : //n * m//th time\nplay_card
+  playing --> playing : play_card\nno other\nmatch
+  playing --> between_tricks : play_card\nall players\nhave same\ncard_count//>0//
+  between_tricks --> playing : play_card,\nreset\ncurrent_trick
+  playing --> done : play_card\nall players\nhave 0\ncards left
   done --> [*]
 #+END_SRC
 
 #+RESULTS:
 [[file:doc/models_round_state_diagram.png]]
+
+The ~between_tricks~ state allows Players to see which card the last
+Player put on the table when the trick ended.
 
 *** Controllers
 **** Organizer

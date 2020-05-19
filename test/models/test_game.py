@@ -162,8 +162,8 @@ def test_Game__full_scenario():
             p.place_bid(0)
             assert p.has_bid
         for cards_played in range(game.current_card_count):
-            print(f"{game.current_card_count}/{cards_played}", end="")
-            assert round_._state == Round.State.PLAYING
+            assert round_._state == (
+                Round.State.PLAYING if cards_played == 0 else Round.State.BETWEEN_TRICKS)
             assert sum(p.tricks for p in confirmed_players) == cards_played
             idx = 0
             for p in confirmed_players:
@@ -174,11 +174,9 @@ def test_Game__full_scenario():
                     with pytest.raises(OutOfTurnError):
                         p.play_card(p._cards[0])
                     assert p.card_count == game.current_card_count - cards_played
-                    print(f" {idx}!{p}", end="")
                     idx += 1
             for p in full_range[idx:(idx + len(confirmed_players))]:
                 assert p.card_count == game.current_card_count - cards_played
-                print(f" [{p}{p.card_count}", end="")
                 for c in p.cards:
                     try:
                         p.play_card(c)
@@ -186,10 +184,8 @@ def test_Game__full_scenario():
                         pass
                     else:
                         break
-                print(f"→{p.card_count}]", end="")
                 if game.current_card_count > cards_played + 1:
                     assert p.card_count == game.current_card_count - cards_played - 1
-            print(".")
         assert round_._state == Round.State.DONE
         assert game.state == Game.State.PAUSED_BETWEEN_ROUNDS
         assert sum(p.tricks for p in confirmed_players) == game.current_card_count

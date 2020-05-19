@@ -168,6 +168,7 @@ def test_Player__confirmed_with_cards_and_bid__will_play_only_his_cards(
         mock_round_with_players):
     (round_, [player, *_]) = mock_round_with_players
     player.place_bid(1)
+    round_.configure_mock(card_allowed=lambda *_args, **kwargs: False)
     with pytest.raises(CardNotAllowedError) as excinfo:
         player.play_card(101)
     round_.play_card.assert_not_called()
@@ -178,14 +179,15 @@ def test_Player__confirmed_with_cards_and_bid__will_play_according_to_rules(
     (round_, [player, *_]) = mock_round_with_players
     player.place_bid(1)
     player._cards = [Card.Heart10, Card.Spade7, Card.ClubQueen]
-    round_.configure_mock(
-        current_trick=[Card.Heart4, Card.Spade8])
+    round_.configure_mock(**{'card_allowed.return_value': False})
     with pytest.raises(CardNotAllowedError) as excinfo:
         player.play_card(Card.Spade7)
+    round_.card_allowed.assert_called_with(Card.Spade7, player.cards)
     round_.play_card.assert_not_called()
     with pytest.raises(CardNotAllowedError) as excinfo:
         player.play_card(Card.ClubQueen)
     round_.play_card.assert_not_called()
+    round_.card_allowed.assert_called_with(Card.ClubQueen, player.cards)
 
 
 def test_Player__confirmed_with_cards_and_bid__will_not_remove_his_card_if_round_refuses(
@@ -225,3 +227,13 @@ def test_Player__confirmed_has_new_secret_id(new_player):
     unconfirmed_secret = new_player.secret_id
     new_player.confirm('')
     assert new_player.secret_id != unconfirmed_secret
+
+
+def test_Player_playable_cards__unconfirmed__throws(new_player):
+    with pytest.raises(IllegalStateError):
+        new_player.playable_cards
+
+
+def test_Player_playable_cards__no_cards__throws(confirmed_player):
+    with pytest.raises(IllegalStateError):
+        confirmed_player.playable_cards

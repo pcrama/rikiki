@@ -304,6 +304,18 @@ a Round."""
         """Return cards in the Player's hand."""
         return self._cards
 
+    @property
+    def playable_cards(self) -> List["Card"]:
+        """Return cards that Player may play in current Round's state."""
+        self._ensure_confirmed()
+        self._ensure_has_cards()
+        self._ensure_has_bid()
+        if self._round is None:
+            raise RuntimeError(
+                "Keep mypy happy, he should already know that _round "
+                "can't be None here")
+        return [c for c in self._cards if self._card_allowed(c)]
+
     def accept_cards(
             self,
             round_: "Round",
@@ -332,13 +344,15 @@ a Round."""
         if self._bid is None:
             raise IllegalStateError(f"{self} has not placed his bid yet")
 
+    def _card_allowed(self, card):
+        return self._round.card_allowed(card, hand=self.cards)
+
     def play_card(self, card):
         """Put a card down on the table."""
         self._ensure_confirmed()
         self._ensure_has_cards()
         self._ensure_has_bid()
-        if card_allowed(
-                card, hand=self.cards, table=self._round.current_trick):
+        if self._card_allowed(card):
             self._cards.remove(card)
             try:
                 self._round.play_card(self, card)
@@ -490,7 +504,8 @@ class Round:
         # needs them as well.
         BIDDING: int = 100
         PLAYING: int = 101
-        DONE: int = 102
+        BETWEEN_TRICKS: int = 102
+        DONE: int = 103
 
     def __init__(self,
                  game: Game,
@@ -517,6 +532,7 @@ class Round:
         self._trick_winner: Optional[int]
         self._trick_winner_card: Optional[Card]
         self._init_new_trick(0)  # start with first player
+        self._current_trick = []
         self._state = Round.State.BIDDING
 
     @property
@@ -559,21 +575,25 @@ class Round:
 
     def play_card(self, player: Player, card: Card) -> None:
         """Call from player to notify that she put a card down."""
-        self._ensure_state(Round.State.PLAYING)
+        self._ensure_state([Round.State.PLAYING, Round.State.BETWEEN_TRICKS])
         self._ensure_current_player(player, "play")
         # TODO: it would be nice to test that all players always have
         # a consistent number of cards... but code would be
         # complicated & hard to test
 
-        # track who wins the trick
-        if len(self._current_trick) == 0:
+        if self._state == Round.State.BETWEEN_TRICKS:
+            # previous trick was complete, 1st player is playing->reinitialize
+            self._current_trick = []
+            self._state = Round.State.PLAYING
+        if self._current_trick == []:
+            # this is the start of a new trick, track who wins the trick
             self._first_card = card
             self._trick_winner = self._current_player
             self._trick_winner_card = card
         else:
             assert (self._trick_winner_card is not None
                     and self._first_card is not None), \
-                ("reassure mypy, these are set in the other branch"
+                ("reassure mypy, these are set in the other branch "
                  "before getting here")
             if beats(card,
                      self._trick_winner_card,
@@ -603,12 +623,25 @@ class Round:
                 self._state = Round.State.DONE
                 self._game.round_finished()
             else:
-                # Round is not complete, prepare for next trick
+                # Round is not complete, wait for next trick before
+                # reinitializing, so that Players can see the last
+                # card put down
+                self._state = Round.State.BETWEEN_TRICKS
                 self._init_new_trick(self._trick_winner)
+
+    def card_allowed(self, card: Card, hand: List[Card]) -> bool:
+        """Tell whether a card may be put on the table."""
+        if self._state == Round.State.BETWEEN_TRICKS:
+            # between tricks, _current_trick is actually the trick
+            # that ended, so pass explicitly an empty table:
+            return card_allowed(card, hand=hand, table=[])
+        elif self._state == Round.State.PLAYING:
+            return card_allowed(card, hand=hand, table=self._current_trick)
+        else:
+            return False
 
     def _init_new_trick(self, first_player: int) -> None:
         self._current_player = first_player
-        self._current_trick = []
         self._first_card = None
         self._trick_winner = None
         self._trick_winner_card = None
@@ -623,7 +656,11 @@ class Round:
             self._state = Round.State.PLAYING
 
     def _ensure_state(self, desired_state):
-        if self._state != desired_state:
+        if hasattr(desired_state, '__iter__'):
+            if all(s != self._state for s in desired_state):
+                raise IllegalStateError(
+                    f"Round is in {self._state}, not one of {desired_state}")
+        elif self._state != desired_state:
             raise IllegalStateError(
                 f"Round is in {self._state}, not in {desired_state}")
 

@@ -168,3 +168,21 @@ def start_a_game(driver, organizer_secret):
     WebDriverWait(driver, 2).until(
         EC.presence_of_element_located((By.CLASS_NAME, "current_player")))
     return result
+
+
+def start_a_game_and_bid(driver, organizer_secret):
+    players = start_a_game(driver, organizer_secret)
+    for idx, (dashboard_id, (dashboard_confirmed_name, dashboard_url)) \
+            in enumerate(players.items()):
+        driver.get(dashboard_url)
+        # wait for player's dashboard to load game state
+        WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+            (By.ID, dashboard_id)))
+        # place bid for player
+        bid_input = driver.find_element_by_id('bidInput')
+        bid_submit = driver.find_element_by_id('bidSubmit')
+        bid_input.click()
+        bid_input.clear()
+        bid_input.send_keys(str(idx % 4))
+        bid_submit.click()
+    return players

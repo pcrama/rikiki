@@ -1,4 +1,4 @@
-import pytest
+import pytest  # type: ignore
 
 from app.models import (Card, beats, card_allowed, same_suit)
 
