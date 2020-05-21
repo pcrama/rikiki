@@ -341,6 +341,116 @@ def test_play_card__out_of_order(game_with_started_round, client):
     assert tested > 0
 
 
+def test_finish_round__post_only(first_player, client):
+    response = client.get('/player/finish/round/', follow_redirects=True)
+    assert response.status_code == 405
+    first_player.confirm('')
+    response = client.get('/player/finish/round/', follow_redirects=True)
+    assert response.status_code == 405
+
+
+def test_finish_round__player_must_be_confirmed(started_game, client):
+    unconfirmed_player = next(
+        p for p in started_game.players if not p.is_confirmed)
+    response = client.post('/player/finish/round/',
+                           data={'secret_id': unconfirmed_player.secret_id},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    assert response.is_json
+    j = response.get_json()
+    assert not j['ok']
+    assert isinstance(j['error'], str)
+
+
+def test_finish_round__game_or_round_bad_state__404(confirmed_first_player, game, client):
+    for p in game.players:
+        if not p.is_confirmed:
+            p.confirm('')
+        response = client.post('/player/finish/round/',
+                               data={'secret_id': p.secret_id},
+                               follow_redirects=True)
+        assert response.status_code == 200
+        assert response.is_json
+        j = response.get_json()
+        assert not j['ok']
+        assert isinstance(j['error'], str)
+    game.start_game()
+    players = game.confirmed_players
+    round_ = game.round
+    round_._state = models.Round.State.DONE
+    response = client.post('/player/finish/round/',
+                           data={'secret_id': p.secret_id},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    assert response.is_json
+    j = response.get_json()
+    assert not j['ok']
+    assert isinstance(j['error'], str)
+
+
+def test_finish_round__bad_secret__403(confirmed_first_player, game_with_started_round, client):
+    response = client.post(
+        '/player/finish/round/',
+        data={'secret_id': 'bad_secret'},
+        follow_redirects=True)
+    assert response.status_code == 403
+    response = client.post(
+        '/player/finish/round/', data={}, follow_redirects=True)
+    assert response.status_code == 403
+
+
+def test_finish_round__last_round(game_with_started_round, client):
+    game = game_with_started_round
+    round_ = game.round
+    assert round_.state == models.Round.State.PLAYING, "Precondition for test not met"
+    # Speed up test by pretending it's the last Round
+    game._current_card_count = 1
+    for p in game.confirmed_players:
+        # Speed up test by removing all player's cards but 1
+        p._cards = [p.cards[0]]
+    for p in game.confirmed_players:
+        p.play_card(p.cards[0])
+    assert round_.state == models.Round.State.DONE, "Precondition for test not met"
+    assert game.state == models.Game.State.PAUSED_BETWEEN_ROUNDS, "Precondition for test not met"
+    # any player may go to next trick, so there are going to be races.
+    # Just ignore the /player/finish/round/ POST if we are playing
+    # already.
+    for p in game_with_started_round.confirmed_players:
+        response = client.post(
+            '/player/finish/round/', data={'secret_id': p.secret_id})
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert status['ok']
+        assert len(status) == 1
+        assert game.state == models.Game.State.DONE
+
+
+def test_finish_round__happy_path(game_with_started_round, client):
+    game = game_with_started_round
+    round_ = game.round
+    assert round_.state == models.Round.State.PLAYING, "Precondition for test not met"
+    for p in game.confirmed_players:
+        # Speed up test by removing all player's cards but 1
+        p._cards = [p.cards[0]]
+    for p in game.confirmed_players:
+        p.play_card(p.cards[0])
+    assert round_.state == models.Round.State.DONE, "Precondition for test not met"
+    # any player may go to next trick, so there are going to be races.
+    # Just ignore the /player/finish/round/ POST if we are playing
+    # already.
+    for p in game_with_started_round.confirmed_players:
+        response = client.post(
+            '/player/finish/round/', data={'secret_id': p.secret_id})
+        assert response.status_code == 200
+        assert response.is_json
+        status = response.get_json()
+        assert status['ok']
+        assert len(status) == 1
+        assert game.round is not round_
+        assert game.round.state == models.Round.State.BIDDING
+
+
 def test_api_status__wrong_secret__403(confirmed_first_player, client):
     response = client.get(
         f'/player/wrong_secret/api/status/', follow_redirects=True)

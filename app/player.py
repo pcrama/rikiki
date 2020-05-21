@@ -147,6 +147,31 @@ def play_card(secret_id='', previous_status_summary='', game=None):
         return jsonify({'ok': True})
 
 
+@bp.route('/finish/round/', methods=('POST',))
+@with_valid_game
+def finish_round(secret_id='', previous_status_summary='', game=None):
+    """Control Player model for the players: place a bid."""
+    player = get_player(current_app, request, secret_id)
+    # # TODO: this logic belongs in the model?
+    # if (not player.is_confirmed or
+    #     (game is None) or
+    #     (game.state != models.Game.State.PLAYING) or
+    #     (game.round is None) or
+    #         (game.round.state not in [
+    #             models.Round.State.PLAYING,
+    #             models.Round.State.BETWEEN_TRICKS])):
+    #     abort(404)
+    try:
+        if player.is_confirmed:
+            game.start_next_round()
+        else:
+            raise Exception(f'{player.name} should be confirmed to do this')
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+    else:
+        return jsonify({'ok': True})
+
+
 def other_player_status(p: models.Player):
     """Gather information about other Players."""
     return {'id': p.id,

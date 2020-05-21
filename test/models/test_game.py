@@ -188,6 +188,9 @@ def test_Game__full_scenario():
                     assert p.card_count == game.current_card_count - cards_played - 1
         assert round_._state == Round.State.DONE
         assert game.state == Game.State.PAUSED_BETWEEN_ROUNDS
+        # Round must remain accessible so that Players can see last
+        # Round's last trick's last card:
+        assert game.round is round_
         assert sum(p.tricks for p in confirmed_players) == game.current_card_count
         game.start_next_round()
     assert game.current_card_count == 0

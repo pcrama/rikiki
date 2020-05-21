@@ -115,8 +115,8 @@ The Game is responsible for
   [*] --> confirming : _~_init~_~_
   confirming --> playing : start_game
   playing --> paused_between_rounds : round_finished
-  paused_between_rounds --> playing : start_next_round
-  paused_between_rounds -> done
+  paused_between_rounds --> playing : start_next_round\n--current_card_count > 0
+  paused_between_rounds -> done : start_next_round\n--current_card_count == 0
   done --> [*]
 #+END_SRC
 

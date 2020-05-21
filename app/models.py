@@ -1,9 +1,10 @@
 """Model classes (the M in MVC)."""
+import collections
 import enum
 import hashlib
 import os
 import random
-from typing import (List, Optional)
+from typing import (List, Optional, Union)
 
 
 class ModelError(RuntimeError):
@@ -114,8 +115,13 @@ class Game:
         self._round = Round(self, self._current_card_count)
         return self._round
 
-    def _ensure_state(self, state: "Game.State") -> None:
-        if self._state != state:
+    def _ensure_state(
+            self, state: Union[State, List[State]]) -> None:
+        if isinstance(state, collections.abc.Iterable):
+            if self._state not in state:
+                raise IllegalStateError(
+                    f"Expected one of {state} for game, not {self._state}")
+        elif self._state != state:
             raise IllegalStateError(
                 f"Expected {state} for game, not {self._state}")
 
@@ -140,7 +146,8 @@ class Game:
     @property
     def round(self) -> "Round":
         """Return Round that is currently being played."""
-        self._ensure_state(Game.State.PLAYING)
+        self._ensure_state(
+            [Game.State.PLAYING, Game.State.PAUSED_BETWEEN_ROUNDS])
         if self._round is None:
             raise ModelError(
                 f'_round is None even though state is {self._state}')
@@ -159,7 +166,7 @@ class Game:
             return 0
 
     @property
-    def state(self) -> "Game.State":
+    def state(self) -> State:
         """Return current Game.State."""
         return self._state
 
@@ -170,13 +177,26 @@ class Game:
 
     def start_next_round(self) -> None:
         """Call to confirm previous Round is finished and start next Round."""
-        self._ensure_state(Game.State.PAUSED_BETWEEN_ROUNDS)
-        self._current_card_count -= 1
-        if self._current_card_count > 0:
-            self._state = Game.State.PLAYING
-            self._round = Round(self, self._current_card_count)
+        if (self._state == Game.State.PLAYING
+            and self._round is not None
+            and self._round.state == Round.State.BIDDING
+            ) or (
+                self._state == Game.State.DONE
+                and self._round is not None
+                and self._round.state == Round.State.DONE):
+            # Probably a race: when a Round ends, all Players get a
+            # button to start the next round.  If more than one of
+            # them clicks on the button, just ignore the extra
+            # requests.
+            pass
         else:
-            self._state = Game.State.DONE
+            self._ensure_state(Game.State.PAUSED_BETWEEN_ROUNDS)
+            self._current_card_count -= 1
+            if self._current_card_count > 0:
+                self._state = Game.State.PLAYING
+                self._round = Round(self, self._current_card_count)
+            else:
+                self._state = Game.State.DONE
 
 
 PLAYER_COUNTER = 0
@@ -655,8 +675,8 @@ class Round:
             self._current_player = 0
             self._state = Round.State.PLAYING
 
-    def _ensure_state(self, desired_state):
-        if hasattr(desired_state, '__iter__'):
+    def _ensure_state(self, desired_state: Union[State, List[State]]) -> None:
+        if isinstance(desired_state, collections.abc.Iterable):
             if all(s != self._state for s in desired_state):
                 raise IllegalStateError(
                     f"Round is in {self._state}, not one of {desired_state}")
