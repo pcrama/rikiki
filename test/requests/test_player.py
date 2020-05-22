@@ -640,7 +640,7 @@ def test_api_status__save_bandwidth(started_game, client):
 def test_api_status__bidding_process(started_game, client):
     players = started_game.confirmed_players
     for (idx, p) in enumerate(players):
-        p.place_bid(1)
+        p.place_bid(2)
         response = client.get(f'/player/{p.secret_id}/api/status/')
         assert response.status_code == 200
         assert response.is_json
@@ -650,7 +650,7 @@ def test_api_status__bidding_process(started_game, client):
             # still in Round.State.BIDDING
             assert 'Bidding' in status['game_state']
             assert len(status) == 7
-            assert f' {idx + 1} tricks bid so far' in status['game_state']
+            assert f' {2 * (idx + 1)} tricks bid so far' in status['game_state']
         else:
             # now in Round.State.PLAYING state.  More detailed
             # validations should be in another test.
@@ -848,10 +848,10 @@ def test_api_status__between_rounds(started_game, client):
     status = response.get_json()
     assert status['playable_cards'] == []
     assert status['cards'] == ''
-    assert status['game_state'].startswith(last_status['game_state'])
+    assert status['game_state'].startswith('Round finished.')
     assert status['game_state'] != last_status['game_state']
     assert all(fragment in status['game_state']
-               for fragment in ('<form ', players[-1].secret_id))
+               for fragment in ('type="button"', players[-1].secret_id))
     assert status['id'] == last_status['id']
     assert len(status['players']) == len(last_status['players'])
     assert status['round']['state'] == int(models.Round.State.DONE)

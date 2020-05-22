@@ -193,24 +193,51 @@ CONFIRMING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
 BIDDING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     '<li id="{{ player.id }}" class="{{ player_class }}">'
     '<span class="player_name">{{ player.name }}</span> has '
-    '{{ player.card_count }} cards and has not bid yet.'
+    '{{ player_count_cards }} and has not bid yet.'
     '</li>'
 )
+
+
+def bidding_player_li_fragment(player, player_class):
+    """Render BIDDING_PLAYER_LI_FRAGMENT."""
+    return BIDDING_PLAYER_LI_FRAGMENT.render(
+        player=player,
+        player_class=player_class,
+        player_count_cards=pluralize(player.card_count, "card"))
+
+
 HAS_BID_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     '<li id="{{ player.id }}" class="{{ player_class }}">'
     '<span class="player_name">{{ player.name }}</span> has '
-    '{{ player.card_count }} cards '
-    'and bid for {{player.bid}} tricks.'
-    '</li>'
-)
+    '{{player_count_cards}} and bid for {{player_bid_tricks}}.</li>')
+
+
+def has_bid_player_li_fragment(player, player_class):
+    """Render HAS_BID_PLAYER_LI_FRAGMENT."""
+    return HAS_BID_PLAYER_LI_FRAGMENT.render(
+        player=player,
+        player_class=player_class,
+        player_count_cards=pluralize(player.card_count, "card"),
+        player_bid_tricks=pluralize(player.bid, "trick"))
+
+
 IS_PLAYING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     '<li id="{{ player.id }}" class="{{ player_class }}">'
     '<span class="player_name">{{ player.name }}</span> has '
-    '{{ player.card_count }} cards, '
-    'bid for {{player.bid}} tricks and '
-    'won {{player.tricks}} tricks.'
-    '</li>'
-)
+    '{{ player_count_cards }}, bid for {{player_bid_tricks}} '
+    'and won {{player_won_tricks}}.</li>')
+
+
+def is_playing_player_li_fragment(player, player_class):
+    """Render IS_PLAYING_PLAYER_LI_FRAGMENT."""
+    return IS_PLAYING_PLAYER_LI_FRAGMENT.render(
+        player=player,
+        player_class=player_class,
+        player_count_cards=pluralize(player.card_count, "card"),
+        player_bid_tricks=pluralize(player.bid, "trick"),
+        player_won_tricks=pluralize(player.tricks, "trick"))
+
+
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="playing_card" id="{{ card_id }}"><img src="'
     '{{ card_url }}"></span>')
@@ -257,16 +284,16 @@ def player_html(
 ) -> str:
     """Return HTML content describing the Player's status."""
     if subject.bid is None:
-        return BIDDING_PLAYER_LI_FRAGMENT.render(
+        return bidding_player_li_fragment(
             player=subject,
             player_class=player_css_class(
                 subject, viewer, current_player))
     if round_state == models.Round.State.BIDDING:
-        return HAS_BID_PLAYER_LI_FRAGMENT.render(
+        return has_bid_player_li_fragment(
             player=subject,
             player_class=player_css_class(
                 subject, viewer, current_player))
-    return IS_PLAYING_PLAYER_LI_FRAGMENT.render(
+    return is_playing_player_li_fragment(
         player=subject,
         player_class=player_css_class(
             subject,
@@ -341,6 +368,14 @@ def api_status(secret_id='', previous_status_summary='', game=None):
     abort(500, "Should not be reached")
 
 
+def pluralize(n, s):
+    """Return a count of objects."""
+    if n == 1:
+        return f'1 {s}'
+    else:
+        return f'{n} {s}s'
+
+
 def game_state(
         game: models.Game,
         player: models.Player,
@@ -350,25 +385,23 @@ def game_state(
     if game.state == game.State.CONFIRMING:
         return ('Waiting for other players to join and '
                 'organizer to start the game')
-    card_count = (f' with {game.current_card_count} '
-                  f'card{"s" if game.current_card_count > 1 else ""}')
+    card_count = f' with {pluralize(game.current_card_count, "card")}'
     bid_count = (''
                  if total_bids is None
-                 else f' and {total_bids} tricks bid')
-    result = ('Bidding'
-              if game.round.state == models.Round.State.BIDDING
-              else 'Playing'
-              ) + card_count + bid_count
+                 else f' and {pluralize(total_bids, "trick")} bid')
     if game.round.state == models.Round.State.BIDDING:
-        return result + ' so far.'
+        return 'Bidding' + card_count + bid_count + ' so far.'
     elif game.round.state == models.Round.State.PLAYING:
-        return result + '.'
+        return 'Playing' + card_count + bid_count + '.'
     elif game.round.state in [
             models.Round.State.BETWEEN_TRICKS,
             models.Round.State.DONE]:
-        result += f'.  {game.round.current_player.name} won the trick.'
+        winner = f'{game.round.current_player.name} won the trick.'
         if game.state == models.Game.State.PAUSED_BETWEEN_ROUNDS:
-            result += FINISH_ROUND_FRAGMENT.render(player=player)
-        return result
+            return 'Round finished.  ' + winner + \
+                FINISH_ROUND_FRAGMENT.render(player=player)
+        else:
+            return 'Playing' + card_count + bid_count + '.  ' + \
+                winner
     return (f'NOT REACHED game.state={game.state}, round:'
             f'{"No Round" if game._round is None else game._round.state}')
