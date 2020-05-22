@@ -242,11 +242,11 @@ PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="playing_card" id="{{ card_id }}"><img src="'
     '{{ card_url }}"></span>')
 FINISH_ROUND_FRAGMENT = JINJA2_ENV.from_string(
-    '<form id="finishRound" onsubmit="submitFinishRound()"><div '
-    'id="finishRoundError"></div><input type="submit" '
+    '<div id="finishRound"><div '
+    'id="finishRoundError"></div><input type="button" '
     'id="finishRoundSubmit" value="Finish '
-    'Round"><input type="hidden" name="secret_id" '
-    'value="{{ player.secret_id }}"></form>')
+    'Round" onclick="submitFinishRound('
+    ''''{{ player.secret_id }}')"></div>''')
 
 
 def card_html_id(card):

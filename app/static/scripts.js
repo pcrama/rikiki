@@ -302,17 +302,16 @@ async function updatePlayerDashboard(statusUrl) {
     return updateTimer;
 }
 
-async function submitFinishRound() {
-    const finishRoundElt = document.getElementById('finishRound')
-    console.log(finishRoundElt);
+async function submitFinishRound(secretId) {
     const finishRoundError = document.getElementById('finishRoundError');
-    console.log(finishRoundError);
     clearElement(finishRoundError);
     finishRoundError.classList.remove('error');
     const finishRoundUrl = '/player/finish/round/';
+    const formData = new FormData();
+    formData.append('secret_id', secretId);
     const response = await fetch(finishRoundUrl, {
         method: 'POST',
-        body: new FormData(finishRoundElt),
+        body: formData,
         mode: 'cors',
         cache: 'no-cache',
         credentials: 'same-origin',
@@ -320,11 +319,11 @@ async function submitFinishRound() {
     if (!response.ok) {
         finishRoundError.classList.add('error');
         finishRoundError.textContent = `${response.status}, ${response.statusText}`;
-        return;
+        return false;
     }
     const data = await response.json();
     if (data.ok) {
-        finishRoundElt.style.display = 'none';
+        document.getElementById('finishRound').style.display = 'none';
     } else {
         finishRoundError.classList.add('error');
         finishRoundError.textContent = data.error;
@@ -349,7 +348,7 @@ async function submitBid(e) {
     if (!response.ok) {
         bidError.classList.add('error');
         bidError.textContent = `${response.status}, ${response.statusText}`;
-        return;
+        return false;
     }
     const data = await response.json();
     if (data.ok) {
@@ -358,4 +357,5 @@ async function submitBid(e) {
         bidError.classList.add('error');
         bidError.textContent = data.error;
     }
+    return false;
 }

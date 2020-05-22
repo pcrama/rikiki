@@ -101,6 +101,13 @@ def while_playing(driver, organizer_secret):
         EC.presence_of_element_located((By.ID, 'finishRound')))
     finish_round_button = finish_round_elt.find_element_by_id(
         'finishRoundSubmit')
+    # try to provoke a race condition where two players finish the
+    # round at the same time:
+    _, second_player_url = list(players.values())[1]
+    with temporary_new_tab(driver, second_player_url):
+        finish_round_button_2 = WebDriverWait(driver, 2).until(
+            EC.presence_of_element_located((By.ID, 'finishRoundSubmit')))
+        finish_round_button_2.click()
     finish_round_button.click()
     # Wait for player to get new cards for next round
     WebDriverWait(driver, 2).until(EC.presence_of_element_located(
