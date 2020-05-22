@@ -111,6 +111,20 @@ def test_Game__start_next_round__reduces_card_count(new_game_with_confirmed_play
         initial_card_count - 1)
 
 
+def test_Game__start_next_round__rotates_confirmed_players(new_game_with_confirmed_players):
+    game = new_game_with_confirmed_players
+    first_round = game.start_game()
+    # reset all players hands, so that they can join a new round
+    for p in game.confirmed_players:
+        p._cards = []
+    game.round_finished()
+    old_confirmed_players = [p for p in game.confirmed_players]
+    game.start_next_round()
+    new_confirmed_players = game.confirmed_players
+    assert new_confirmed_players == (
+        old_confirmed_players[1:] + [old_confirmed_players[0]])
+
+
 def test_Game__player_by_id__returns_player(new_game_with_confirmed_players):
     for p in new_game_with_confirmed_players.players:
         by_id = new_game_with_confirmed_players.player_by_id(p.id)
@@ -156,7 +170,7 @@ def test_Game__full_scenario():
         previous_card_count = game.current_card_count
         round_count += 1
         assert round_._state == Round.State.BIDDING
-        for p in confirmed_players:
+        for p in game.confirmed_players:
             assert p.card_count == game.current_card_count
             assert not p.has_bid
             p.place_bid(0)

@@ -201,6 +201,9 @@ class Game:
             self._current_card_count -= 1
             if self._current_card_count > 0:
                 self._state = Game.State.PLAYING
+                # First player of next Round shifts
+                first_player = self._confirmed_players.pop(0)
+                self._confirmed_players.append(first_player)
                 self._round = Round(self, self._current_card_count)
             else:
                 self._state = Game.State.DONE

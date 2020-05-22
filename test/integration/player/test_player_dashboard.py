@@ -33,6 +33,7 @@ def get_player_dashboard_elements(driver):
 def while_playing(driver, organizer_secret):
     players = start_a_game_and_bid(driver, organizer_secret)
     expected_table = []
+    initial_player_card_count = None
     total_card_count = 0  # count how many cards have been dealt
     for dashboard_id, (dashboard_confirmed_name, dashboard_url) in players.items():
         driver.get(dashboard_url)
@@ -41,8 +42,13 @@ def while_playing(driver, organizer_secret):
             (By.ID, dashboard_id)))
         playable_card = WebDriverWait(driver, 2).until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, '.playable_card')))
-        total_card_count += len(driver.find_element_by_id(
+        player_card_count = len(driver.find_element_by_id(
             'cards').find_elements_by_tag_name('img'))
+        if initial_player_card_count is None:
+            initial_player_card_count = player_card_count
+        else:
+            assert initial_player_card_count == player_card_count
+        total_card_count += player_card_count
         played_card_id = playable_card.get_attribute('id')
         playable_card.click()
         total_card_count -= 1
@@ -102,6 +108,15 @@ def while_playing(driver, organizer_secret):
     # in second round, there must always be a trump card
     WebDriverWait(driver, 2).until(EC.presence_of_element_located(
         (By.XPATH, f'//div[@id="trump"]//img')))
+    # Second player starts second round:
+    _, second_player_url = list(players.values())[1]
+    driver.get(second_player_url)
+    bid_elt = WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        # from https://github.com/seleniumhq/selenium-google-code-issue-archive/issues/977#issuecomment-191440792
+        (By.CSS_SELECTOR, '#bid:not([style*="display: none"])')))
+    bid_input = driver.find_element_by_id('bidInput')
+    assert int(bid_input.get_attribute('max')) == initial_player_card_count - 1
+    assert bid_input.get_attribute('value') == ''
 
 
 def while_bidding(driver, organizer_secret):
