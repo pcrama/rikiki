@@ -287,35 +287,11 @@ async function updatePlayerDashboard(statusUrl) {
         }
         const bidElt = document.getElementById('bid');
         if (roundState == ROUND_STATE_BIDDING && currentPlayerId == selfId) {
-            bidElt.onsubmit = async function submitBid(e) {
-                e.preventDefault()
-                const bidError = document.getElementById('bidError');
-                clearElement(bidError);
-                bidError.classList.remove('error');
-                const bidUrl = '/player/place/bid/';
-                const response = await fetch(bidUrl, {
-                    method: 'POST',
-                    body: new FormData(bidElt),
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    credentials: 'same-origin',
-                    redirect: 'follow'});
-                if (!response.ok) {
-                    bidError.classList.add('error');
-                    bidError.textContent = `${response.status}, ${response.statusText}`;
-                    return;
-                }
-                const data = await response.json();
-                if (data.ok) {
-                    bidElt.style.display = 'none';
-                } else {
-                    bidError.classList.add('error');
-                    bidError.textContent = data.error;
-                }
-            };
+            bidElt.onsubmit = submitBid;
             bidElt.style.display = "inline";
-            // const bidInput = document.getElementById('bidInput');
-            // bidInput.max = ???;
+            const bidInput = document.getElementById('bidInput');
+            bidInput.value = undefined;
+            bidInput.max = document.getElementById('cards').childNodes.length;
         } else {
             bidElt.style.display = "none";
         }
@@ -323,4 +299,32 @@ async function updatePlayerDashboard(statusUrl) {
     lastGameStatusSummary = newStatusSummary;
     updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
+}
+
+async function submitBid(e) {
+    e.preventDefault()
+    const bidElt = e.target;
+    const bidError = document.getElementById('bidError');
+    clearElement(bidError);
+    bidError.classList.remove('error');
+    const bidUrl = '/player/place/bid/';
+    const response = await fetch(bidUrl, {
+        method: 'POST',
+        body: new FormData(bidElt),
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        redirect: 'follow'});
+    if (!response.ok) {
+        bidError.classList.add('error');
+        bidError.textContent = `${response.status}, ${response.statusText}`;
+        return;
+    }
+    const data = await response.json();
+    if (data.ok) {
+        bidElt.style.display = 'none';
+    } else {
+        bidError.classList.add('error');
+        bidError.textContent = data.error;
+    }
 }

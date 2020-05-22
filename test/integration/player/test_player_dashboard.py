@@ -1,6 +1,3 @@
-from collections import OrderedDict
-import time
-
 import pytest  # type: ignore
 from flask import url_for
 from selenium import webdriver  # type: ignore
@@ -9,6 +6,8 @@ from selenium.common.exceptions import NoSuchElementException  # type: ignore
 from selenium.webdriver.common.keys import Keys  # type: ignore
 from selenium.webdriver.support.ui import WebDriverWait  # type: ignore
 from selenium.webdriver.support import expected_conditions as EC  # type: ignore
+
+import app.models as models
 
 from ..helper import ff_driver as driver
 from ..helper import (
@@ -125,10 +124,14 @@ def while_bidding(driver, organizer_secret):
         (By.ID, first_player_id)))
     # place bid for first player
     bid_input = driver.find_element_by_id('bidInput')
-    bid_submit = driver.find_element_by_id('bidSubmit')
+    assert bid_input.get_attribute('min') == '0'
+    assert bid_input.get_attribute('max') == str(
+        models.MAX_CARDS // len(players))
+    assert bid_input.get_attribute('required')
     bid_input.click()
     bid_input.clear()
     bid_input.send_keys('4')
+    bid_submit = driver.find_element_by_id('bidSubmit')
     bid_submit.click()
     second_player_id, (_name, second_player_url) = list(players.items())[1]
     # player dashboard must update with next current_player, ...
@@ -153,27 +156,16 @@ def while_bidding(driver, organizer_secret):
     for id_ in ('bidInput', 'bidSubmit'):
         bid_elt = driver.find_element_by_id(id_)
         assert bid_elt.is_displayed()
-    # but when bidding for more tricks than she has cards ...
+    # ... and can place a valid bid
     bid_input = driver.find_element_by_id('bidInput')
-    bid_submit = driver.find_element_by_id('bidSubmit')
-    bid_input.click()
-    bid_input.clear()
-    bid_input.send_keys('44')
-    bid_submit.click()
-    # ... an error message appears ...
-    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
-        (By.XPATH,
-         f'//div[@id="bidError" and ' +
-         'contains(concat(" ",normalize-space(@class)," ")," error ")]')))
-    bid_error_msg = driver.find_element_by_id('bidError')
-    assert '44' in bid_error_msg.text
-    assert 'error' in bid_error_msg.get_attribute('class').split()
-    # ... but can still place a valid bid
-    bid_input = driver.find_element_by_id('bidInput')
-    bid_submit = driver.find_element_by_id('bidSubmit')
+    assert bid_input.get_attribute('min') == '0'
+    assert bid_input.get_attribute('max') == str(
+        models.MAX_CARDS // len(players))
+    assert bid_input.get_attribute('required')
     bid_input.click()
     bid_input.clear()
     bid_input.send_keys('5')
+    bid_submit = driver.find_element_by_id('bidSubmit')
     bid_submit.click()
     third_player_id, (_name, third_player_url) = list(players.items())[1]
     # player dashboard must update with next current_player:

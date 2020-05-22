@@ -12,7 +12,7 @@
       {{ url_for('player.api_status', secret_id=player.secret_id)|tojson }});
 </script>
   <div id="trump"></div>
-  <form id="bid" style="display: none;"><div id="bidError"></div>Place bid: <input type="number" id="bidInput" name="bidInput" min="0" max="52"><input type="submit" id="bidSubmit" value="Submit Bid"><input type="hidden" name="secret_id" value="{{ player.secret_id }}"></form>
+  <form id="bid" style="display: none;"><div id="bidError"></div>Place bid: <input type="number" id="bidInput" name="bidInput" min="0" max="52" required="required"><input type="submit" id="bidSubmit" value="Submit Bid"><input type="hidden" name="secret_id" value="{{ player.secret_id }}"></form>
   <ul id="players">
   </ul>
   <div id="table"></div>
