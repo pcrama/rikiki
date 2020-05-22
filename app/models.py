@@ -147,10 +147,17 @@ class Game:
     def round(self) -> "Round":
         """Return Round that is currently being played."""
         self._ensure_state(
-            [Game.State.PLAYING, Game.State.PAUSED_BETWEEN_ROUNDS])
+            [Game.State.PLAYING,
+             Game.State.PAUSED_BETWEEN_ROUNDS,
+             Game.State.DONE])
         if self._round is None:
             raise ModelError(
                 f'_round is None even though state is {self._state}')
+        elif self.state == Game.State.DONE \
+                and self._round.state != Round.State.DONE:
+            raise ModelError(
+                f'_round.state is {self._round.state} even though '
+                f'state is {self._state}')
         return self._round
 
     @property
@@ -633,6 +640,7 @@ class Round:
             # trick is complete: every player put her card down on the
             # table, attribute the trick to the winner
             self._players[self._trick_winner].add_trick()
+            self._init_new_trick(self._trick_winner)
             # check if Round is complete:
             if any(p.card_count == 0 for p in self._players):
                 # At the end of the Round, all players must have no
@@ -647,7 +655,6 @@ class Round:
                 # reinitializing, so that Players can see the last
                 # card put down
                 self._state = Round.State.BETWEEN_TRICKS
-                self._init_new_trick(self._trick_winner)
 
     def card_allowed(self, card: Card, hand: List[Card]) -> bool:
         """Tell whether a card may be put on the table."""

@@ -818,6 +818,68 @@ def test_api_status__between_tricks(game_with_started_round, client):
             status['cards'].split('<img ')) - 1
 
 
+def test_api_status__between_rounds(started_game, client):
+    def find_by_id(status, id_):
+        return next(p for p in status['players'] if p['id'] == id_)
+    game = started_game
+    round_ = game.round
+    players = game.confirmed_players
+    # speed up test by moving to last round and restricting the number of cards
+    game._current_card_count = 1
+    for p in players:
+        assert p.is_confirmed, "Precondition for test not met"
+        p._cards = [p.cards[0]]
+        p.place_bid(0)
+    assert round_.state == models.Round.State.PLAYING, "Precondition for test not met"
+    assert game.state == models.Game.State.PLAYING, "Precondition for test not met"
+    for idx, p in enumerate(players):
+        if idx == len(players) - 1:
+            # Record last status to compare before & after
+            response = client.get(f'/player/{p.secret_id}/api/status/')
+            assert response.status_code == 200, "Precondition for test not met"
+            assert response.is_json, "Precondition for test not met"
+            last_status = response.get_json()
+        p.play_card(p.playable_cards[0])
+    assert round_.state == models.Round.State.DONE, "Precondition for test not met"
+    assert game.state == models.Game.State.PAUSED_BETWEEN_ROUNDS, "Precondition for test not met"
+    response = client.get(f'/player/{p.secret_id}/api/status/')
+    assert response.status_code == 200
+    assert response.is_json
+    status = response.get_json()
+    assert status['playable_cards'] == []
+    assert status['cards'] == ''
+    assert status['game_state'].startswith(last_status['game_state'])
+    assert status['game_state'] != last_status['game_state']
+    assert all(fragment in status['game_state']
+               for fragment in ('<form ', players[-1].secret_id))
+    assert status['id'] == last_status['id']
+    assert len(status['players']) == len(last_status['players'])
+    assert status['round']['state'] == int(models.Round.State.DONE)
+    assert status['summary'] != last_status['summary']
+    assert len(status['table'].split('<img ')
+               ) == len(last_status['table'].split('<img ')) + 1
+    assert status['trump'] == last_status['trump']
+    assert len(status) == len(last_status)
+    assert not any('current_player' in p['h'] for p in status['players'])
+    trick_winner_id = status['round']['current_player']
+    trick_winner = game.player_by_id(trick_winner_id)
+    if trick_winner_id == status['id']:
+        # trick winner is also last player with changed number of cards -> -1
+        assert sum(old == new
+                   for old, new in zip(last_status['players'], status['players'])
+                   ) == len(status['players']) - 1
+        assert len(status['playable_cards']) == len(
+            status['cards'].split('<img ')) - 1
+    else:
+        # assume that the difference is due to the trick count being increased
+        assert find_by_id(status, trick_winner_id) != find_by_id(
+            last_status, trick_winner_id)
+        assert sum(old == new
+                   for old, new in zip(last_status['players'], status['players'])
+                   ) == len(status['players']) - 2  # trick winner + last player with changed number of cards
+        assert status['playable_cards'] == []
+
+
 def test_organizer_url_for_unconfirmed_player(rikiki_app, first_player):
     with rikiki_app.test_request_context():
         assert organizer_url_for_player(first_player

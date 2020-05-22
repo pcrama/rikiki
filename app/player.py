@@ -214,6 +214,12 @@ IS_PLAYING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="playing_card" id="{{ card_id }}"><img src="'
     '{{ card_url }}"></span>')
+FINISH_ROUND_FRAGMENT = JINJA2_ENV.from_string(
+    '<form id="finishRound" onsubmit="submitFinishRound()"><div '
+    'id="finishRoundError"></div><input type="submit" '
+    'id="finishRoundSubmit" value="Finish '
+    'Round"><input type="hidden" name="secret_id" '
+    'value="{{ player.secret_id }}"></form>')
 
 
 def card_html_id(card):
@@ -263,7 +269,11 @@ def player_html(
     return IS_PLAYING_PLAYER_LI_FRAGMENT.render(
         player=subject,
         player_class=player_css_class(
-            subject, viewer, current_player))
+            subject,
+            viewer,
+            None
+            if round_state == models.Round.State.DONE
+            else current_player))
 
 
 @bp.route('/<secret_id>/api/status/')
@@ -282,8 +292,7 @@ def api_status(secret_id='', previous_status_summary='', game=None):
     elif game.state == game.State.CONFIRMING:
         return jsonify({
             'summary': status_summary,
-            'game_state': ('Waiting for other players to join and '
-                           'organizer to start the game'),
+            'game_state': game_state(game, player),
             'id': player.id,
             'players': [
                 {'id': p.id,
@@ -291,24 +300,15 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                      player=p,
                      player_class=player_css_class(p, player, None))}
                 for p in game.players if p.is_confirmed]})
-    elif game.state == models.Game.State.PLAYING:
+    elif game.state in [models.Game.State.PLAYING,
+                        models.Game.State.PAUSED_BETWEEN_ROUNDS,
+                        models.Game.State.DONE]:
         total_bids = sum((p.bid or 0) for p in game.confirmed_players)
         cards = [render_player_card_fragment(card) for card in player.cards]
         cards.sort(reverse=True)
         result = {
             'summary': status_summary,
-            'game_state': (
-                'Bidding'
-                if game.round.state == models.Round.State.BIDDING
-                else 'Playing'
-            ) + (f' with {game.current_card_count} cards '
-                 f'and {total_bids} tricks bid'
-                 ) + (' so far.'
-                      if game.round.state == models.Round.State.BIDDING
-                      else ('.'
-                            if game.round.state == models.Round.State.PLAYING
-                            else (f'.  {game.round.current_player.name} won '
-                                  'the trick.'))),
+            'game_state': game_state(game, player, total_bids=total_bids),
             'id': player.id,
             'cards': ''.join(cards),
             'trump': ('No trump'
@@ -338,19 +338,37 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                                       for c in game.round.current_trick)
             result['playable_cards'] = []
         return jsonify(result)
-    result = {
-        'cards': player.cards,
-        'bid': player.bid,
-        'tricks': player.tricks,
-        'other_players': [other_player_status(p)
-                          for p
-                          in (game.players
-                              if game.state == game.State.CONFIRMING
-                              else game.confirmed_players)
-                          if p.is_confirmed and p is not player],
-    }
-    try:
-        result['current_player'] = game.round.current_player.id
-    except models.ModelError:
-        pass
-    return jsonify(result)
+    abort(500, "Should not be reached")
+
+
+def game_state(
+        game: models.Game,
+        player: models.Player,
+        total_bids: Optional[int] = None
+) -> str:
+    """Return HTML fragment describing game state for Player's dashboard."""
+    if game.state == game.State.CONFIRMING:
+        return ('Waiting for other players to join and '
+                'organizer to start the game')
+    card_count = (f' with {game.current_card_count} '
+                  f'card{"s" if game.current_card_count > 1 else ""}')
+    bid_count = (''
+                 if total_bids is None
+                 else f' and {total_bids} tricks bid')
+    result = ('Bidding'
+              if game.round.state == models.Round.State.BIDDING
+              else 'Playing'
+              ) + card_count + bid_count
+    if game.round.state == models.Round.State.BIDDING:
+        return result + ' so far.'
+    elif game.round.state == models.Round.State.PLAYING:
+        return result + '.'
+    elif game.round.state in [
+            models.Round.State.BETWEEN_TRICKS,
+            models.Round.State.DONE]:
+        result += f'.  {game.round.current_player.name} won the trick.'
+        if game.state == models.Game.State.PAUSED_BETWEEN_ROUNDS:
+            result += FINISH_ROUND_FRAGMENT.render(player=player)
+        return result
+    return (f'NOT REACHED game.state={game.state}, round:'
+            f'{"No Round" if game._round is None else game._round.state}')

@@ -44,13 +44,14 @@ function gameStateName(x) {
 const ROUND_STATE_BIDDING = 100;
 const ROUND_STATE_PLAYING = 101;
 const ROUND_STATE_BETWEEN_TRICKS = 102;
+const ROUND_STATE_DONE = 103;
 
 function roundStateName(x) {
     switch (x) {
     case ROUND_STATE_BIDDING: return "Bidding";
     case ROUND_STATE_PLAYING: return "Playing";
     case ROUND_STATE_BETWEEN_TRICKS: return "Playing"; // a little white lie
-    case 103: return "Done";
+    case ROUND_STATE_DONE: return "Done";
     default: return `Error!  scripts.js and Round.State are out of sync: ${x} is unknown.`;
     }
 }
@@ -251,8 +252,6 @@ async function updatePlayerDashboard(statusUrl) {
                         let formData = new FormData();
                         formData.append('secret_id', secretId);
                         formData.append('card', spanElt.id.substr(1));
-                        console.log(spanElt);
-                        console.log(spanElt.id.substr(1));
                         const response = await fetch(playUrl, {
                             method: 'POST',
                             body: formData,
@@ -282,7 +281,9 @@ async function updatePlayerDashboard(statusUrl) {
         }
         const tableElt = document.getElementById('table');
         clearElement(tableElt);
-        if (roundState == ROUND_STATE_PLAYING || roundState == ROUND_STATE_BETWEEN_TRICKS) {
+        if (roundState == ROUND_STATE_PLAYING
+            || roundState == ROUND_STATE_BETWEEN_TRICKS
+            || roundState == ROUND_STATE_DONE) {
             tableElt.insertAdjacentHTML('beforeend', data.table);
         }
         const bidElt = document.getElementById('bid');
@@ -299,6 +300,36 @@ async function updatePlayerDashboard(statusUrl) {
     lastGameStatusSummary = newStatusSummary;
     updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
+}
+
+async function submitFinishRound() {
+    const finishRoundElt = document.getElementById('finishRound')
+    console.log(finishRoundElt);
+    const finishRoundError = document.getElementById('finishRoundError');
+    console.log(finishRoundError);
+    clearElement(finishRoundError);
+    finishRoundError.classList.remove('error');
+    const finishRoundUrl = '/player/finish/round/';
+    const response = await fetch(finishRoundUrl, {
+        method: 'POST',
+        body: new FormData(finishRoundElt),
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        redirect: 'follow'});
+    if (!response.ok) {
+        finishRoundError.classList.add('error');
+        finishRoundError.textContent = `${response.status}, ${response.statusText}`;
+        return;
+    }
+    const data = await response.json();
+    if (data.ok) {
+        finishRoundElt.style.display = 'none';
+    } else {
+        finishRoundError.classList.add('error');
+        finishRoundError.textContent = data.error;
+    }
+    return false;
 }
 
 async function submitBid(e) {

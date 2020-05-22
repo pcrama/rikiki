@@ -33,6 +33,7 @@ def get_player_dashboard_elements(driver):
 def while_playing(driver, organizer_secret):
     players = start_a_game_and_bid(driver, organizer_secret)
     expected_table = []
+    total_card_count = 0  # count how many cards have been dealt
     for dashboard_id, (dashboard_confirmed_name, dashboard_url) in players.items():
         driver.get(dashboard_url)
         # wait for player's dashboard to load game state
@@ -40,8 +41,11 @@ def while_playing(driver, organizer_secret):
             (By.ID, dashboard_id)))
         playable_card = WebDriverWait(driver, 2).until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, '.playable_card')))
+        total_card_count += len(driver.find_element_by_id(
+            'cards').find_elements_by_tag_name('img'))
         played_card_id = playable_card.get_attribute('id')
         playable_card.click()
+        total_card_count -= 1
         # make sure the played cards appear in the 'table' display
         table_elt = driver.find_element_by_id('table')
         expected_table.append(played_card_id)
@@ -62,6 +66,7 @@ def while_playing(driver, organizer_secret):
         (By.CSS_SELECTOR, '.playable_card')))
     played_card_id = playable_card.get_attribute('id')
     playable_card.click()
+    total_card_count -= 1
     # make sure the played cards appear in the 'table' display
     table_elt = driver.find_element_by_id('table')
     WebDriverWait(driver, 2).until(EC.presence_of_element_located(
@@ -70,8 +75,8 @@ def while_playing(driver, organizer_secret):
     assert len(table_elt.find_elements_by_tag_name('img')) == 1
     # no errors
     assert driver.find_elements_by_css_selector('.error') == []
-    # play another 10 cards
-    for _ in range(10):
+    # finish the round
+    while total_card_count > 0:
         next_player_id = WebDriverWait(driver, 2).until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, '.current_player'))).get_attribute('id')
         next_player_name, next_player_url = players[next_player_id]
@@ -80,12 +85,23 @@ def while_playing(driver, organizer_secret):
             (By.CSS_SELECTOR, '.playable_card')))
         played_card_id = playable_card.get_attribute('id')
         playable_card.click()
+        total_card_count -= 1
         # make sure the played card appears in the 'table' display
-        table_elt = driver.find_element_by_id('table')
         WebDriverWait(driver, 2).until(EC.presence_of_element_located(
             (By.XPATH, f'//div[@id="table"]/span[@id="{played_card_id}"]')))
         # and no errors are displayed
         assert driver.find_elements_by_css_selector('.error') == []
+    finish_round_elt = WebDriverWait(driver, 2).until(
+        EC.presence_of_element_located((By.ID, 'finishRound')))
+    finish_round_button = finish_round_elt.find_element_by_id(
+        'finishRoundSubmit')
+    finish_round_button.click()
+    # Wait for player to get new cards for next round
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.XPATH, f'//div[@id="cards"]//img')))
+    # in second round, there must always be a trump card
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.XPATH, f'//div[@id="trump"]//img')))
 
 
 def while_bidding(driver, organizer_secret):
