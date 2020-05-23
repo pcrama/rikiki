@@ -205,7 +205,7 @@ def while_bidding(driver, organizer_secret):
     bid_input.send_keys('5')
     bid_submit = driver.find_element_by_id('bidSubmit')
     bid_submit.click()
-    third_player_id, (_name, third_player_url) = list(players.items())[1]
+    third_player_id, (_name, third_player_url) = list(players.items())[2]
     # player dashboard must update with next current_player:
     p_li = WebDriverWait(driver, 5).until(EC.presence_of_element_located(
         (By.XPATH,
