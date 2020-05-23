@@ -7,11 +7,11 @@
   </head>
   <body>
     <nav>
-      <h1>Rikiki - {% block title %}{% endblock %}</h1>
+      Rikiki - {% block title %}{% endblock %}
     </nav>
     <section class="content">
       <header>
-        <h2>{% block header %}{% endblock %}</h2>
+        {% block header %}{% endblock %}
       </header>
       {% for category, message in get_flashed_messages(with_categories=true) %}
       <div class="flash {{category}}">{{ message }}</div>
