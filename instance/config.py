@@ -13,6 +13,10 @@ class Config(object):
     CSRF_ENABLED = True
     # Secret key for signing cookies
     SECRET_KEY = os.urandom(16)
+    # Information for Babel
+    SUPPORTED_LANGUAGES = {'en': 'English', 'fr': 'Français'}
+    BABEL_DEFAULT_LOCALE = 'fr'
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
 
 
 class DevelopmentConfig(Config):
@@ -28,6 +32,7 @@ class TestingConfig(Config):
     TESTING = True
     DEBUG = True
     SECRET_KEY = b"development-secret"
+    BABEL_DEFAULT_LOCALE = 'en'
 
 
 class StagingConfig(Config):
@@ -47,3 +52,7 @@ app_config = {
     'staging': StagingConfig,
     'production': ProductionConfig,
 }
+
+# Local Variables:
+# coding: utf-8
+# End:

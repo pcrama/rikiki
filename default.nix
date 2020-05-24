@@ -22,6 +22,7 @@ stdenv.mkDerivation rec {
       extraLibs = with python37Packages; [
         # Add pythonPackages without the prefix
         flask
+        flask-babel
       ] ++ (if lib.inNixShell
             then [
                     autopep8

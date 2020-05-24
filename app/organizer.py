@@ -6,6 +6,7 @@ from typing import List, Optional, Set
 
 from flask import (Blueprint, abort, current_app, flash, jsonify,
                    redirect, render_template, request, url_for)
+from flask_babel import _  # type: ignore
 
 from . import models
 from .player import organizer_url_for_player
@@ -35,7 +36,7 @@ def setup_game(organizer_secret=''):
         # First validations OK, now parse the list
         player_names = parse_playerlist(playerlist)
         if len(player_names) < 3:
-            return render(playerlist, error='Not enough players in list')
+            return render(playerlist, error=_('Not enough players in list'))
         elif len(player_names) > 26:
             return render(playerlist, error='Too many players in list')
         current_app.create_game(

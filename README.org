@@ -68,6 +68,36 @@ dealt and the game proceeds.
     run = "FLASK_APP=flaskr FLASK_ENV=production python3 -m flask run --port 3000 --host 0.0.0.0"
   #+END_EXAMPLE
 - No database, all data is in memory.
+- Running locally for testing: ~python -m flask run --port 8080~.
+
+** i18n
+Following the information [[https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xiii-i18n-and-l10n][here]].
+*** Extract all texts to translate
+#+BEGIN_SRC shell :exports code
+  cd app
+  pybabel extract -F babel.cfg -k _l -o messages.pot .
+#+END_SRC
+
+~messages.pot~ may be ignored in version control.
+*** Translating
+1. Generate skeleton file:
+   #+BEGIN_SRC shell :exports code
+     for lang in fr ; do \
+       pybabel $( \
+                 if [ -r translations/$lang/LC_MESSAGES/messages.po ] ; \
+                 then echo update ; \
+                 else echo init ; fi) \
+               -i messages.pot \
+               -d translations \
+               -l $lang ; \
+     done
+   #+END_SRC
+2. Translate the strings in
+   ~app/translations/$lang/LC_MESSAGES/messages.po~.
+3. Compile to a more compact/efficient representation:
+   #+BEGIN_SRC shell :exports code
+     pybabel compile -d translations
+   #+END_SRC
 
 ** Security
 - No logins, the security is based on hard to guess links to set a

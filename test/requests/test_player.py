@@ -58,6 +58,25 @@ def test_player_confirm_game_exists__get_with_secret(first_player, client):
     assert response.status_code == 200
 
 
+def test_player_confirm_game_exists__respects_language_header(first_player, client):
+    response = client.get(
+        f'/player/confirm/{first_player.secret_id}/',
+        headers=[('Accept-Language', 'fr')])
+    assert response.status_code == 200
+    assert FLASH_ERROR not in response.data
+    assert rendered_template(response, 'player.confirm')
+    assert b'votre nom' in response.data
+    assert b'votre participation' in response.data
+    response = client.get(
+        f'/player/confirm/{first_player.secret_id}/',
+        headers=[('Accept-Language', 'nl, en-gb;q=0.8')])
+    assert response.status_code == 200
+    assert FLASH_ERROR not in response.data
+    assert rendered_template(response, 'player.confirm')
+    assert b'your name' in response.data
+    assert b'your participation' in response.data
+
+
 def test_player_confirm__game_exists__post_confirmation_without_valid_secret(first_player, client):
     for invalid_secret_data in [
             {},

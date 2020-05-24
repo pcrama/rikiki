@@ -1,0 +1,135 @@
+# French translations for PROJECT.
+# Copyright (C) 2020 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2020-05-25 07:41+0200\n"
+"PO-Revision-Date: 2020-05-24 20:40+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.6.0\n"
+
+#: organizer.py:39
+msgid "Not enough players in list"
+msgstr "Votre list ne contient pas assez de joueurs"
+
+#: player.py:73
+#, python-format
+msgid "Your name is already confirmed as %(n)s"
+msgstr "Votre nom est déjà confirmé: %(n)s"
+
+#: player.py:99
+msgid "You must confirm your participation first"
+msgstr "Vous devez d'abord confirmer votre participation"
+
+#: player.py:202
+msgid "card"
+msgstr "carte"
+
+#: player.py:203
+msgid "trick"
+msgstr "pli"
+
+#: player.py:212
+#, python-format
+msgid "has %(cards)s and has not bid yet"
+msgstr "a %(cards)s et n'a pas encore annoncé de plis"
+
+#: player.py:228
+#, python-format
+msgid "has %(cards)s and bid for %(tricks)s"
+msgstr "a %(cards)s et a annoncé %(tricks)s"
+
+#: player.py:245
+#, python-format
+msgid "has %(cards)s, bid for %(tricks)s and won %(won_tricks)s"
+msgstr "a %(cards)s, annoncé %(tricks)s et ramassé %(won_tricks)s"
+
+#: player.py:395
+msgid "Waiting for other players to join and organizer to start the game."
+msgstr ""
+"Veuillez attendre les autres joueurs et que l'organisateur démarre la "
+"partie."
+
+#: player.py:398
+#, python-format
+msgid " with %(cards)s"
+msgstr " avec %(cards)s"
+
+#: player.py:401
+msgid "1 trick bid"
+msgstr "1 pli annoncé"
+
+#: player.py:404
+#, python-format
+msgid "%(tricks)s bid"
+msgstr "%(tricks)s annoncés"
+
+#: player.py:406
+#, python-format
+msgid "Bidding %(card_count)s %(bid_count)s so far."
+msgstr "En train d'annoncer %(card_count)s: déjà %(bid_count)s."
+
+#: player.py:410 player.py:421
+#, python-format
+msgid "Playing %(card_count)s %(bid_count)s."
+msgstr "En train de jouer %(card_count)s: %(bid_count)s."
+
+#: player.py:416
+msgid " won the trick."
+msgstr " a gagné le pli."
+
+#: player.py:418
+msgid "Round finished.  "
+msgstr "Partie terminée.  "
+
+#: templates/player/confirm.html:2
+msgid "Player"
+msgstr "Joueur"
+
+#: templates/player/confirm.html:3
+msgid "Confirm your participation"
+msgstr "Confirmez votre participation"
+
+#: templates/player/confirm.html:7
+msgid "Please confirm your name"
+msgstr "Veuillez confirmer votre nom"
+
+#: templates/player/confirm.html:10
+msgid "Your Name"
+msgstr "Votre nom"
+
+#: templates/player/confirm.html:12
+msgid "Submit"
+msgstr "Confirmer"
+
+#: templates/player/player.html:14
+msgid "Place bid"
+msgstr "Nombre de plis à annoncer"
+
+#: templates/player/player.html:14
+msgid "Submit Bid"
+msgstr "Confirmer"
+
+#: templates/player/too-late.html:3
+msgid "Sorry, too late."
+msgstr "Désolé, trop tard."
+
+#: templates/player/too-late.html:7
+msgid ""
+"The organizer already started the game and all cards were already dealt."
+"  Sorry, you will have to wait for a new game to start."
+msgstr ""
+"L'organisateur a déjà démarré la partie et toutes les cartes ont été "
+"distribuées.  Désolé, vous devrez attendre le début d'une nouvelle "
+"partie."
+

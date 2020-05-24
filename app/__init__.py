@@ -4,6 +4,8 @@ from typing import List, Optional
 
 
 import flask
+from flask_babel import Babel  # type: ignore
+
 from instance.config import app_config
 
 from .models import Game, Player
@@ -44,6 +46,17 @@ def create_app(config_name):
     app.register_blueprint(organizer.bp)
     app.register_blueprint(player.bp)
     log_organizer_secret_to_console(app)
+
+    # Setup i18n
+    babel = Babel(app)
+    @babel.localeselector
+    def get_locale():
+        return flask.request.accept_languages.best_match(
+            list(app.config['SUPPORTED_LANGUAGES'].keys()))
+
+    @babel.timezoneselector
+    def get_timezone():
+        return app.config['BABEL_DEFAULT_TIMEZONE']
     return app
 
 
