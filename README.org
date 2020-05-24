@@ -55,6 +55,10 @@ dealt and the game proceeds.
 - The round ends when all cards have been played.
 - Scoring is outside the scope of this application.
 
+** As an organizer, I want to start a new gama
+- This 'kills' the previously running game.
+- It is OK for the organizer to enter the player names again.
+
 * Implementation
 ** Hosting
 - Probably on repl.it, with settings similar to these and a link to

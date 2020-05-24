@@ -79,6 +79,30 @@ def test_organizer_post_with_players(organizer_secret, client, rikiki_app):
     assert [p.name for p in rikiki_app.game.players] == PLAYER_NAMES
 
 
+def test_organizer_post_with_players_twice_overwrites_first_game(organizer_secret, client, rikiki_app):
+    PLAYER_NAMES_1 = ['riri', 'fifi', 'lulu']
+    response = client.post(
+        '/organizer/setup/game/',
+        data={'organizer_secret': organizer_secret,
+              'playerlist': '\n'.join(PLAYER_NAMES_1)},
+        follow_redirects=True)
+    try:
+        game_1 = rikiki_app.game
+        assert [p.name for p in game_1.players] == PLAYER_NAMES_1
+    except Exception as e:
+        assert e is None, "Test precondition not met"
+    PLAYER_NAMES_2 = ['toto', 'momo', 'lili']
+    response = client.post(
+        '/organizer/setup/game/',
+        data={'organizer_secret': organizer_secret,
+              'playerlist': ', '.join(PLAYER_NAMES_2)},
+        follow_redirects=True)
+    assert rikiki_app.game is not game_1
+    assert response.status_code == 200
+    assert FLASH_ERROR not in response.data
+    assert [p.name for p in rikiki_app.game.players] == PLAYER_NAMES_2
+
+
 def test_parse_playerlist_simple_examples():
     assert parse_playerlist('riri\nfifi\nlulu') == ['riri', 'fifi', 'lulu']
     assert parse_playerlist(' riri\n\r\tfifi \n\tlulu\t') == [

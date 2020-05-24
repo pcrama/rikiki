@@ -22,4 +22,5 @@
     </li>
     {% endfor %}
   </ul>
+  <p><a href="{{ url_for('organizer.setup_game', organizer_secret=organizer_secret) }}">Create a new game instead</a></p>
 {% endblock %}
