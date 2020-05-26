@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-05-25 07:41+0200\n"
+"POT-Creation-Date: 2020-05-26 15:56+0200\n"
 "PO-Revision-Date: 2020-05-24 20:40+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -53,6 +53,10 @@ msgstr "a %(cards)s et a annoncé %(tricks)s"
 #, python-format
 msgid "has %(cards)s, bid for %(tricks)s and won %(won_tricks)s"
 msgstr "a %(cards)s, annoncé %(tricks)s et ramassé %(won_tricks)s"
+
+#: player.py:352
+msgid "Trump: "
+msgstr "Atout: "
 
 #: player.py:395
 msgid "Waiting for other players to join and organizer to start the game."
