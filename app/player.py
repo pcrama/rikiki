@@ -248,12 +248,19 @@ def is_playing_player_li_fragment(player, player_class):
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="playing_card" id="{{ card_id }}"><img src="'
     '{{ card_url }}"></span>')
+
+
 FINISH_ROUND_FRAGMENT = JINJA2_ENV.from_string(
     '<div id="finishRound"><div '
     'id="finishRoundError"></div><input type="button" '
-    'id="finishRoundSubmit" value="Finish '
-    'Round" onclick="submitFinishRound('
+    'id="finishRoundSubmit" value="{{i18n}}" '
+    'onclick="submitFinishRound('
     ''''{{ player.secret_id }}')"></div>''')
+
+
+def finish_round_fragment(player):
+    """Render FINISH_ROUND_FRAGMENT."""
+    return FINISH_ROUND_FRAGMENT.render(player=player, i18n=_('Finish Round'))
 
 
 def card_html_id(card):
@@ -403,11 +410,11 @@ def game_state(
                        else _('%(tricks)s bid',
                               tricks=pluralize(total_bids, i18n_trick))))
     if game.round.state == models.Round.State.BIDDING:
-        return _('Bidding %(card_count)s %(bid_count)s so far.',
+        return _('Bidding %(card_count)s, %(bid_count)s so far.',
                  card_count=card_count,
                  bid_count=bid_count)
     elif game.round.state == models.Round.State.PLAYING:
-        return _('Playing %(card_count)s %(bid_count)s.',
+        return _('Playing %(card_count)s, %(bid_count)s.',
                  card_count=card_count,
                  bid_count=bid_count)
     elif game.round.state in [
@@ -416,9 +423,9 @@ def game_state(
         winner = game.round.current_player.name + _(' won the trick.')
         if game.state == models.Game.State.PAUSED_BETWEEN_ROUNDS:
             return _('Round finished.  ') + winner + \
-                FINISH_ROUND_FRAGMENT.render(player=player)
+                finish_round_fragment(player=player)
         else:
-            return _('Playing %(card_count)s %(bid_count)s.',
+            return _('Playing %(card_count)s, %(bid_count)s.',
                      card_count=card_count,
                      bid_count=bid_count
                      ) + winner

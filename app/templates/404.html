@@ -1,8 +1,8 @@
 {% extends "layout.html" %}
-{% block title %}Page Not Found{% endblock %}
+{% block title %}{{ _('Page Not Found') }}{% endblock %}
 {% block header %}
-What you were looking for is just not there.
+{{ _('What you were looking for is just not there.') }}
 {% endblock %}
 {% block content %}
-<p>Look in the console output for a valid organizer link.</p>
+<p>{{ _('Look in the console output for a valid organizer link.') }}</p>
 {% endblock %}

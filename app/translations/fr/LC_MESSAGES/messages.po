@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-05-26 15:56+0200\n"
+"POT-Creation-Date: 2020-05-27 17:22+0200\n"
 "PO-Revision-Date: 2020-05-24 20:40+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -54,47 +54,87 @@ msgstr "a %(cards)s et a annoncé %(tricks)s"
 msgid "has %(cards)s, bid for %(tricks)s and won %(won_tricks)s"
 msgstr "a %(cards)s, annoncé %(tricks)s et ramassé %(won_tricks)s"
 
-#: player.py:352
+#: player.py:263
+msgid "Finish Round"
+msgstr "Redistribuer les cartes"
+
+#: player.py:359
 msgid "Trump: "
 msgstr "Atout: "
 
-#: player.py:395
+#: player.py:402
 msgid "Waiting for other players to join and organizer to start the game."
 msgstr ""
 "Veuillez attendre les autres joueurs et que l'organisateur démarre la "
 "partie."
 
-#: player.py:398
+#: player.py:405
 #, python-format
 msgid " with %(cards)s"
 msgstr " avec %(cards)s"
 
-#: player.py:401
+#: player.py:408
 msgid "1 trick bid"
 msgstr "1 pli annoncé"
 
-#: player.py:404
+#: player.py:411
 #, python-format
 msgid "%(tricks)s bid"
 msgstr "%(tricks)s annoncés"
 
-#: player.py:406
+#: player.py:413
 #, python-format
-msgid "Bidding %(card_count)s %(bid_count)s so far."
+msgid "Bidding %(card_count)s, %(bid_count)s so far."
 msgstr "En train d'annoncer %(card_count)s: déjà %(bid_count)s."
 
-#: player.py:410 player.py:421
+#: player.py:417 player.py:428
 #, python-format
-msgid "Playing %(card_count)s %(bid_count)s."
+msgid "Playing %(card_count)s, %(bid_count)s."
 msgstr "En train de jouer %(card_count)s: %(bid_count)s."
 
-#: player.py:416
+#: player.py:423
 msgid " won the trick."
 msgstr " a gagné le pli."
 
-#: player.py:418
+#: player.py:425
 msgid "Round finished.  "
 msgstr "Partie terminée.  "
+
+#: templates/403.html:2
+msgid "Access Forbidden"
+msgstr "Accès interdit"
+
+#: templates/403.html:4
+msgid "You may not access this page."
+msgstr "Vous n'avez pas le droit de voir cette page."
+
+#: templates/403.html:7
+msgid ""
+"If you are the organizer, see in the console output for the secret link "
+"to access your page."
+msgstr ""
+"Si vous êtes l'organisateur, voyez la console du serveur pour connaître "
+"le lien pour accéder à votre page."
+
+#: templates/403.html:8
+msgid ""
+"If you are a player, ask the organizer for a secret link to your player "
+"page."
+msgstr ""
+"Si vous êtes un jouer, demander le lien secret de votre page à "
+"l'organisateur."
+
+#: templates/404.html:2
+msgid "Page Not Found"
+msgstr "Page introuvable"
+
+#: templates/404.html:4
+msgid "What you were looking for is just not there."
+msgstr "Ce que vous ne cherchez n'est pas ici."
+
+#: templates/404.html:7
+msgid "Look in the console output for a valid organizer link."
+msgstr "Voyez la console du serveur pour un lien valide pour l'organisateur."
 
 #: templates/player/confirm.html:2
 msgid "Player"

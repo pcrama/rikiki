@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}Access Forbidden{% endblock %}
+{% block title %}{{ _('Access Forbidden') }}{% endblock %}
 {% block header %}
-You may not access this page.
+{{ _('You may not access this page.') }}
 {% endblock %}
 {% block content %}
-<p>If you are the organizer, see in the console output for the secret link to access your page.</p>
-<p>If you are a player, ask the organizer for a secret link to your player page.</p>
+<p>{{ _('If you are the organizer, see in the console output for the secret link to access your page.') }}</p>
+<p>{{ _('If you are a player, ask the organizer for a secret link to your player page.') }}</p>
 {% endblock %}
