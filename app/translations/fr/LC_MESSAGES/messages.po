@@ -52,7 +52,7 @@ msgstr "a %(cards)s et a annoncé %(tricks)s"
 #: player.py:245
 #, python-format
 msgid "has %(cards)s, bid for %(tricks)s and won %(won_tricks)s"
-msgstr "a %(cards)s, annoncé %(tricks)s et ramassé %(won_tricks)s"
+msgstr "a %(cards)s, a annoncé %(tricks)s et ramassé %(won_tricks)s"
 
 #: player.py:263
 msgid "Finish Round"
@@ -130,7 +130,7 @@ msgstr "Page introuvable"
 
 #: templates/404.html:4
 msgid "What you were looking for is just not there."
-msgstr "Ce que vous ne cherchez n'est pas ici."
+msgstr "Ce que vous recherchez n'est pas ici."
 
 #: templates/404.html:7
 msgid "Look in the console output for a valid organizer link."
