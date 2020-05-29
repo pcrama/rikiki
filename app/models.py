@@ -4,7 +4,7 @@ import enum
 import hashlib
 import os
 import random
-from typing import (List, Optional, Union)
+from typing import (List, Optional, Tuple, Union)
 
 
 class ModelError(RuntimeError):
@@ -557,7 +557,7 @@ class Round:
         self._game = game
         # type hints for mypy, but initialized by _init_new_trick
         self._current_player: int
-        self._current_trick: List[Card]
+        self._current_trick: List[Tuple[Player, Card]]
         self._first_card: Optional[Card]
         self._trick_winner: Optional[int]
         self._trick_winner_card: Optional[Card]
@@ -599,7 +599,7 @@ class Round:
         return self._players[self._current_player]
 
     @property
-    def current_trick(self) -> List[Card]:
+    def current_trick(self) -> List[Tuple[Player, Card]]:
         """Return cards currently on the table."""
         return self._current_trick
 
@@ -632,7 +632,7 @@ class Round:
                 self._trick_winner = self._current_player
                 self._trick_winner_card = card
 
-        self._current_trick.append(card)
+        self._current_trick.append((self.current_player, card))
         # advance to next player
         self._current_player = (self._current_player + 1) % len(self._players)
         # check if trick is complete:
@@ -666,7 +666,8 @@ class Round:
             # that ended, so pass explicitly an empty table:
             return card_allowed(card, hand=hand, table=[])
         elif self._state == Round.State.PLAYING:
-            return card_allowed(card, hand=hand, table=self._current_trick)
+            return card_allowed(
+                card, hand=hand, table=[c for _, c in self._current_trick])
         else:
             return False
 

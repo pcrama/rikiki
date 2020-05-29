@@ -247,7 +247,7 @@ def is_playing_player_li_fragment(player, player_class):
 
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="playing_card" id="{{ card_id }}"><img src="'
-    '{{ card_url }}"></span>')
+    '{{ card_url }}" title="{{ full_player_name }}"></span>')
 
 
 FINISH_ROUND_FRAGMENT = JINJA2_ENV.from_string(
@@ -268,9 +268,10 @@ def card_html_id(card):
     return f'c{card:02d}'
 
 
-def render_player_card_fragment(card):
+def render_player_card_fragment(card, player=None):
     """Render PLAYER_CARD_FRAGMENT."""
     return PLAYER_CARD_FRAGMENT.render(
+        full_player_name="" if player is None else player.name,
         card_id=card_html_id(card),
         card_url=url_for('static',
                          filename=f'cards/card{card:02d}.png'))
@@ -370,18 +371,22 @@ def api_status(secret_id='', previous_status_summary='', game=None):
                 for p in game.confirmed_players]}
         if game.round.state in [models.Round.State.PLAYING,
                                 models.Round.State.BETWEEN_TRICKS]:
-            result['table'] = ''.join(render_player_card_fragment(c)
-                                      for c in game.round.current_trick)
+            result['table'] = render_table(game)
             result['playable_cards'] = [
                 card_html_id(card) for card in player.playable_cards
             ] if player is game.round.current_player \
                 else []
         elif game.round.state == models.Round.State.DONE:
-            result['table'] = ''.join(render_player_card_fragment(c)
-                                      for c in game.round.current_trick)
+            result['table'] = render_table(game)
             result['playable_cards'] = []
         return jsonify(result)
     abort(500, "Should not be reached")
+
+
+def render_table(game):
+    """Render current cards on table as HTML fragment."""
+    return ''.join(render_player_card_fragment(c, player=p)
+                   for p, c in game.round.current_trick)
 
 
 def pluralize(n, s):

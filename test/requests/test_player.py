@@ -752,6 +752,12 @@ def test_api_status__playing(game_with_started_round, client):
             assert len(status) == 9
         # check that no card was lost:
         all_cards_html = observed_table + ''.join(all_cards_in_hands)
+        # check that table contains information about which player played which card
+        for idx, part in enumerate(observed_table.split('<img ')):
+            if idx == 0:
+                continue  # no <img ...> tag in first split
+            # assume player.name needed no HTML escaping
+            assert f'title="{players[idx - 1].name}"' in part
         assert all(
             f'cards/card{c:02d}.png' in all_cards_html for c in all_cards_at_start)
         card = 0
@@ -821,11 +827,13 @@ def test_api_status__between_tricks(game_with_started_round, client):
         assert status['playable_cards'] == []
     assert status['summary'] != last_status['summary']
     # the table contains as many cards as players ...
-    assert len(status['table'].split('<img ')) - 1 == len(status['players'])
+    #   poor man's extraction of images:
+    table_split = status['table'].split('<img ')
+    assert len(table_split) - 1 == len(status['players'])
     # ... with all player's cards ...
     assert status['table'].startswith(last_status['table'])
     # ... even last player's:
-    assert f'card{card:02}.png"' in status['table'].split('<img ')[-1]
+    assert f'card{card:02}.png"' in table_split[-1]
     if trick_winner_id is not players[-1]:
         # first player may play anything, already tested if
         # trick_winner is current_player

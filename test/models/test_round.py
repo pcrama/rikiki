@@ -202,11 +202,12 @@ def test_Round__play_card__attributes_trick_after_all_played(
 
     assert round_.current_trick == []
     mock_player_plays_card(players[0], Card.Heart3)
-    assert round_.current_trick == [Card.Heart3]
+    assert round_.current_trick == list(zip(players, [Card.Heart3]))
     for p in players:
         p.add_trick.assert_not_called()
     mock_player_plays_card(players[1], Card.Heart10)
-    assert round_.current_trick == [Card.Heart3, Card.Heart10]
+    assert round_.current_trick == list(
+        zip(players, [Card.Heart3, Card.Heart10]))
     for p in players:
         p.add_trick.assert_not_called()
     mock_player_plays_card(players[2], Card.Heart7)
@@ -215,15 +216,17 @@ def test_Round__play_card__attributes_trick_after_all_played(
     players[2].add_trick.assert_not_called()
     assert round_.state == Round.State.BETWEEN_TRICKS
     # Round allows to see the previous trick ...
-    assert round_.current_trick == [Card.Heart3, Card.Heart10, Card.Heart7]
+    assert round_.current_trick == list(zip(
+        players, [Card.Heart3, Card.Heart10, Card.Heart7]))
     # ... before automatically starting a new trick when the next card
     # is played (by valid player):
     assert round_.current_player is players[1]
     with pytest.raises(OutOfTurnError):
         mock_player_plays_card(players[0], Card.HeartAce)
-    assert round_.current_trick == [Card.Heart3, Card.Heart10, Card.Heart7]
+    assert round_.current_trick == list(zip(
+        players, [Card.Heart3, Card.Heart10, Card.Heart7]))
     mock_player_plays_card(players[1], Card.HeartKing)
-    assert round_.current_trick == [Card.HeartKing]
+    assert round_.current_trick == [(players[1], Card.HeartKing)]
 
 
 def test_Round__play_card__goes_to_DONE_state_after_last_card(
@@ -240,7 +243,11 @@ def test_Round__play_card__goes_to_DONE_state_after_last_card(
     game.round_finished.assert_called_with()
     # previous trick still visible
     assert round_.current_trick == [
-        Card.HeartAce for _ in mock_confirmed_players]
+        (p, Card.HeartAce) for p in mock_confirmed_players]
+
+
+def rotate(s):
+    return [] if s == [] else s[1:] + [s[0]]
 
 
 def test_Round__full_scenario(mock_confirmed_players):
@@ -259,23 +266,26 @@ def test_Round__full_scenario(mock_confirmed_players):
 
     # Simulate first trick
     mock_play_card(players[0], Card.Heart10, 1)
-    assert round_.current_trick == [Card.Heart10]
+    assert round_.current_trick == list(zip(players, [Card.Heart10]))
     mock_play_card(players[1], Card.HeartAce, 1)
-    assert round_.current_trick == [Card.Heart10, Card.HeartAce]
+    assert round_.current_trick == list(
+        zip(players, [Card.Heart10, Card.HeartAce]))
     mock_play_card(players[2], Card.Heart4, 1)
-    assert round_.current_trick == [Card.Heart10, Card.HeartAce, Card.Heart4]
+    assert round_.current_trick == list(
+        zip(players, [Card.Heart10, Card.HeartAce, Card.Heart4]))
     assert round_._state == Round.State.BETWEEN_TRICKS
     players[1].add_trick.assert_called_with()
     assert round_.current_player is players[1]
 
     # Simulate second trick
     mock_play_card(players[1], Card.Diamond4, 0)
-    assert round_.current_trick == [Card.Diamond4]
+    assert round_.current_trick == list(zip(rotate(players), [Card.Diamond4]))
     mock_play_card(players[2], Card.Diamond10, 0)
-    assert round_.current_trick == [Card.Diamond4, Card.Diamond10]
+    assert round_.current_trick == list(
+        zip(rotate(players), [Card.Diamond4, Card.Diamond10]))
     mock_play_card(players[0], Card.DiamondAce, 0)
-    assert round_.current_trick == [
-        Card.Diamond4, Card.Diamond10, Card.DiamondAce]
+    assert round_.current_trick == list(zip(rotate(players), [
+        Card.Diamond4, Card.Diamond10, Card.DiamondAce]))
     players[0].add_trick.assert_called_with()
     assert round_._state == Round.State.DONE
     game.round_finished.assert_called_with()
