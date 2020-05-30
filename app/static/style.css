@@ -40,3 +40,21 @@ span.playable_card img { border-color: green;  border-width: 2px; border-style: 
 span.playable_card:hover img { border-color: green;  border-width: 2px; border-style: solid; }
 span.unplayable_card img { opacity: 50%; }
 span.unplayable_card:hover img { opacity: 25%; }
+
+#table * {
+  box-sizing: border-box;
+}
+.playing_card_column {
+  float: left;
+  width: 86px; /* width of card images */
+  padding: 5px;
+  text-overflow: clip;
+  /* Required for text-overflow to do anything */
+  white-space: nowrap;
+  overflow: hidden;
+}
+.playing_card_row::after {
+  content: "";
+  clear: both;
+  display: table;
+}

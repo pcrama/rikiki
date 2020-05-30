@@ -246,8 +246,17 @@ def is_playing_player_li_fragment(player, player_class):
 
 
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
+    '<div class="playing_card_column">'
+    '<div class="playing_card" id="{{ card_id }}">'
+    '<img src="{{ card_url }}" title="{{ player_name }}" style="width:100%">'
+    '</div>'
+    '{{ player_name }}'
+    '</div>')
+
+
+SIMPLE_CARD_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="playing_card" id="{{ card_id }}"><img src="'
-    '{{ card_url }}" title="{{ full_player_name }}"></span>')
+    '{{ card_url }}"></span>')
 
 
 FINISH_ROUND_FRAGMENT = JINJA2_ENV.from_string(
@@ -270,11 +279,13 @@ def card_html_id(card):
 
 def render_player_card_fragment(card, player=None):
     """Render PLAYER_CARD_FRAGMENT."""
-    return PLAYER_CARD_FRAGMENT.render(
-        full_player_name="" if player is None else player.name,
-        card_id=card_html_id(card),
-        card_url=url_for('static',
-                         filename=f'cards/card{card:02d}.png'))
+    card_id = card_html_id(card)
+    card_url = url_for('static', filename=f'cards/card{card:02d}.png')
+    if player is None:
+        return SIMPLE_CARD_FRAGMENT.render(card_id=card_id, card_url=card_url)
+    else:
+        return PLAYER_CARD_FRAGMENT.render(
+            player_name=player.name, card_id=card_id, card_url=card_url)
 
 
 def player_css_class(p1, p2, cp=None):

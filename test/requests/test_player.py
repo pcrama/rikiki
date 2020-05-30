@@ -757,7 +757,10 @@ def test_api_status__playing(game_with_started_round, client):
             if idx == 0:
                 continue  # no <img ...> tag in first split
             # assume player.name needed no HTML escaping
+            # ... occurs once in mouseover text
             assert f'title="{players[idx - 1].name}"' in part
+            # ... occurs second time in normal text
+            assert f'>{players[idx - 1].name}<' in part
         assert all(
             f'cards/card{c:02d}.png' in all_cards_html for c in all_cards_at_start)
         card = 0

@@ -54,10 +54,12 @@ def while_playing(driver, organizer_secret):
         total_card_count -= 1
         # make sure the played cards appear in the 'table' display
         table_elt = driver.find_element_by_id('table')
-        expected_table.append(played_card_id)
-        for c in expected_table:
-            WebDriverWait(driver, 2).until(EC.presence_of_element_located(
-                (By.XPATH, f'//div[@id="table"]/span[@id="{c}"]')))
+        expected_table.append((dashboard_confirmed_name, played_card_id))
+        for n, c in expected_table:
+            card_container_elt = WebDriverWait(driver, 2).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, f'//div[@id="table"]/div[div/@id="{c}"]')))
+            assert card_container_elt.text == n
         # but table only contains those cards
         assert len(table_elt.find_elements_by_tag_name('img')
                    ) == len(expected_table)
@@ -76,9 +78,11 @@ def while_playing(driver, organizer_secret):
     # make sure the played cards appear in the 'table' display
     table_elt = driver.find_element_by_id('table')
     WebDriverWait(driver, 2).until(EC.presence_of_element_located(
-        (By.XPATH, f'//div[@id="table"]/span[@id="{played_card_id}"]')))
-    # but table only contains those cards
+        (By.XPATH, f'//div[@id="table"]//div[@id="{played_card_id}"]')))
+    # but table only contains thid card
     assert len(table_elt.find_elements_by_tag_name('img')) == 1
+    # and name of who played id
+    assert table_elt.text == trick_winner_name
     # no errors
     assert driver.find_elements_by_css_selector('.error') == []
     # finish the round
@@ -92,9 +96,15 @@ def while_playing(driver, organizer_secret):
         played_card_id = playable_card.get_attribute('id')
         playable_card.click()
         total_card_count -= 1
-        # make sure the played card appears in the 'table' display
-        WebDriverWait(driver, 2).until(EC.presence_of_element_located(
-            (By.XPATH, f'//div[@id="table"]/span[@id="{played_card_id}"]')))
+        # make sure the played card appears in the 'table' display ...
+        card_container_elt = WebDriverWait(driver, 2).until(
+            EC.presence_of_element_located(
+                (By.XPATH, f'//div[@id="table"]/div[div/@id="{played_card_id}"]')))
+        # ... attributed to correct player
+        assert card_container_elt.text == next_player_name
+        # ... also in hover text
+        card_elt = card_container_elt.find_element_by_tag_name('img')
+        assert card_elt.get_attribute('title') == next_player_name
         # and no errors are displayed
         assert driver.find_elements_by_css_selector('.error') == []
     finish_round_elt = WebDriverWait(driver, 2).until(
