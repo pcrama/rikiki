@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-06-01 14:33+0200\n"
+"POT-Creation-Date: 2020-06-01 21:22+0200\n"
 "PO-Revision-Date: 2020-05-24 20:40+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -31,11 +31,11 @@ msgstr "Votre nom est déjà confirmé: %(n)s"
 msgid "You must confirm your participation first"
 msgstr "Vous devez d'abord confirmer votre participation"
 
-#: player.py:204
+#: player.py:199
 msgid "card"
 msgstr "carte"
 
-#: player.py:205
+#: player.py:200
 msgid "trick"
 msgstr "pli"
 
@@ -44,59 +44,78 @@ msgstr "pli"
 msgid "has %(cards)s and has not bid yet"
 msgstr "a %(cards)s et n'a pas encore annoncé de plis"
 
-#: player.py:230
+#: player.py:224
 #, python-format
 msgid "has %(cards)s and bid for %(tricks)s"
 msgstr "a %(cards)s et a annoncé %(tricks)s"
 
-#: player.py:247
+#: player.py:235
 #, python-format
 msgid "has %(cards)s, bid for %(tricks)s and won %(won_tricks)s"
 msgstr "a %(cards)s, a annoncé %(tricks)s et ramassé %(won_tricks)s"
 
-#: player.py:274
+#: player.py:242
+#, python-format
+msgid "bid for %(tricks)s and won %(won_tricks)s"
+msgstr "a annoncé %(tricks)s et ramassé %(won_tricks)s"
+
+#: player.py:244
+msgid ", the right amount of tricks"
+msgstr ", le nombre annoncé"
+
+#: player.py:247
+#, python-format
+msgid ", %(extra_tricks)s too many"
+msgstr ", %(extra_tricks)s de trop"
+
+#: player.py:251
+#, python-format
+msgid ": there are %(missing_tricks)s missing"
+msgstr ", %(missing_tricks) trop peu"
+
+#: player.py:283
 msgid "Finish Round"
 msgstr "Redistribuer les cartes"
 
-#: player.py:373
+#: player.py:375
 msgid "Trump: "
 msgstr "Atout: "
 
-#: player.py:420
+#: player.py:422
 msgid "Waiting for other players to join and organizer to start the game."
 msgstr ""
 "Veuillez attendre les autres joueurs et que l'organisateur démarre la "
 "partie."
 
-#: player.py:423
+#: player.py:425
 #, python-format
 msgid " with %(cards)s"
 msgstr " avec %(cards)s"
 
-#: player.py:426
+#: player.py:428
 msgid "1 trick bid"
 msgstr "1 pli annoncé"
 
-#: player.py:429
+#: player.py:431
 #, python-format
 msgid "%(tricks)s bid"
 msgstr "%(tricks)s annoncés"
 
-#: player.py:431
+#: player.py:433
 #, python-format
 msgid "Bidding %(card_count)s, %(bid_count)s so far."
 msgstr "En train d'annoncer %(card_count)s: déjà %(bid_count)s."
 
-#: player.py:435 player.py:447
+#: player.py:437 player.py:449
 #, python-format
 msgid "Playing %(card_count)s, %(bid_count)s."
 msgstr "En train de jouer %(card_count)s: %(bid_count)s."
 
-#: player.py:442
+#: player.py:444
 msgid " won the trick."
 msgstr " a gagné le pli."
 
-#: player.py:444
+#: player.py:446
 msgid "Round finished."
 msgstr "Partie terminée."
 

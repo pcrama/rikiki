@@ -18,7 +18,7 @@ def ff_driver():
     """Create a webdriver using Firefox."""
     from selenium.webdriver.firefox.options import Options  # type: ignore
     options = Options()
-    options.headless = True
+#    options.headless = True
     driver = webdriver.Firefox(options=options)
     yield driver
     driver.close()

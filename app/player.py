@@ -194,35 +194,29 @@ CONFIRMING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     '{{ player.name }}'
     '</li>')
 
-BIDDING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
-    '<li id="{{ player.id }}" class="{{ player_class }}">'
-    '<span class="player_name">{{ player.name }}</span> '
-    '{{i18n}}.</li>')
-
 WINNER_FRAGMENT = JINJA2_ENV.from_string('  {{name}} {{i18n}}')
 
 i18n_card = _l("card")
 i18n_trick = _l("trick")
 
+PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
+    '<li id="{{ player.id }}" class="{{ player_class }}">'
+    '<span class="player_name">{{ player.name }}</span> '
+    '{{i18n}}.</li>')
+
 
 def bidding_player_li_fragment(player, player_class):
-    """Render BIDDING_PLAYER_LI_FRAGMENT."""
-    return BIDDING_PLAYER_LI_FRAGMENT.render(
+    """Render PLAYER_LI_FRAGMENT for Player that did not bid yet."""
+    return PLAYER_LI_FRAGMENT.render(
         player=player,
         player_class=player_class,
         i18n=_("has %(cards)s and has not bid yet",
                cards=pluralize(player.card_count, i18n_card)))
 
 
-HAS_BID_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
-    '<li id="{{ player.id }}" class="{{ player_class }}">'
-    '<span class="player_name">{{ player.name }}</span> '
-    '{{i18n}}.</li>')
-
-
 def has_bid_player_li_fragment(player, player_class):
-    """Render HAS_BID_PLAYER_LI_FRAGMENT."""
-    return HAS_BID_PLAYER_LI_FRAGMENT.render(
+    """Render PLAYER_LI_FRAGMENT for Player that bid but did not play yet."""
+    return PLAYER_LI_FRAGMENT.render(
         player=player,
         player_class=player_class,
         i18n=_("has %(cards)s and bid for %(tricks)s",
@@ -230,21 +224,36 @@ def has_bid_player_li_fragment(player, player_class):
                tricks=pluralize(player.bid, i18n_trick)))
 
 
-IS_PLAYING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
-    '<li id="{{ player.id }}" class="{{ player_class }}">'
-    '<span class="player_name">{{ player.name }}</span> '
-    '{{i18n}}.</li>')
-
-
 def is_playing_player_li_fragment(player, player_class):
-    """Render IS_PLAYING_PLAYER_LI_FRAGMENT."""
-    return IS_PLAYING_PLAYER_LI_FRAGMENT.render(
+    """Render PLAYER_LI_FRAGMENT for Player while making tricks."""
+    return PLAYER_LI_FRAGMENT.render(
         player=player,
         player_class=player_class,
         i18n=_("has %(cards)s, bid for %(tricks)s and won %(won_tricks)s",
                cards=pluralize(player.card_count, i18n_card),
                tricks=pluralize(player.bid, i18n_trick),
                won_tricks=pluralize(player.tricks, i18n_trick)))
+
+
+def between_rounds_player_li_fragment(player, player_class):
+    """Render description of Player between rounds."""
+    i18n = _('bid for %(tricks)s and won %(won_tricks)s',
+             tricks=pluralize(player.bid, i18n_trick),
+             won_tricks=pluralize(player.tricks, i18n_trick))
+    if player.bid == player.tricks:
+        i18n += _(', the right amount of tricks')
+    elif player.bid < player.tricks:
+        i18n += _(', %(extra_tricks)s too many',
+                  extra_tricks=pluralize(player.tricks - player.bid,
+                                         i18n_trick))
+    else:
+        i18n += _(': there are %(missing_tricks)s missing',
+                  missing_tricks=pluralize(player.bid - player.tricks,
+                                           i18n_trick))
+    return PLAYER_LI_FRAGMENT.render(
+        player=player,
+        player_class=player_class,
+        i18n=i18n)
 
 
 PLAYER_CARD_FRAGMENT = JINJA2_ENV.from_string(
@@ -309,28 +318,21 @@ def player_html(
         viewer: models.Player,
         current_player: models.Player,
         round_state: models.Round.State
-
-
 ) -> str:
     """Return HTML content describing the Player's status."""
+    if round_state == models.Round.State.DONE:
+        return between_rounds_player_li_fragment(
+            player=subject,
+            player_class=player_css_class(subject, viewer, None))
+    player_class = player_css_class(subject, viewer, current_player)
     if subject.bid is None:
         return bidding_player_li_fragment(
-            player=subject,
-            player_class=player_css_class(
-                subject, viewer, current_player))
+            player=subject, player_class=player_class)
     if round_state == models.Round.State.BIDDING:
         return has_bid_player_li_fragment(
-            player=subject,
-            player_class=player_css_class(
-                subject, viewer, current_player))
+            player=subject, player_class=player_class)
     return is_playing_player_li_fragment(
-        player=subject,
-        player_class=player_css_class(
-            subject,
-            viewer,
-            None
-            if round_state == models.Round.State.DONE
-            else current_player))
+        player=subject, player_class=player_class)
 
 
 @bp.route('/<secret_id>/api/status/')

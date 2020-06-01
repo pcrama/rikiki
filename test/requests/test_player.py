@@ -905,21 +905,12 @@ def test_api_status__between_rounds(started_game, client):
     assert not any('current_player' in p['h'] for p in status['players'])
     trick_winner_id = status['round']['current_player']
     trick_winner = game.player_by_id(trick_winner_id)
-    if trick_winner_id == status['id']:
-        # trick winner is also last player with changed number of cards -> -1
-        assert sum(old == new
-                   for old, new in zip(last_status['players'], status['players'])
-                   ) == len(status['players']) - 1
-        assert len(status['playable_cards']) == len(
-            status['cards'].split('<img ')) - 1
-    else:
-        # assume that the difference is due to the trick count being increased
-        assert find_by_id(status, trick_winner_id) != find_by_id(
-            last_status, trick_winner_id)
-        assert sum(old == new
-                   for old, new in zip(last_status['players'], status['players'])
-                   ) == len(status['players']) - 2  # trick winner + last player with changed number of cards
-        assert status['playable_cards'] == []
+    for p in players:
+        p_status = find_by_id(status, p.id)
+        # everyone bid 0, but trick_winner has exactly one trick:
+        assert ('1 trick too many'
+                if trick_winner_id == p.id
+                else 'the right amount of tricks') in p_status['h']
 
 
 def test_organizer_url_for_unconfirmed_player(rikiki_app, first_player):
