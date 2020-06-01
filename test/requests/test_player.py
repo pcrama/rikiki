@@ -491,6 +491,7 @@ def test_api_status__confirmed_no_other_players_yet__returns_correct_json(confir
     assert len(status) == 4
     assert status['summary'] == game.status_summary()
     assert 'Waiting' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['players'] == [
         {'id': confirmed_first_player.id,
          'h': f'<li id="{confirmed_first_player.id}" class="self_player">{escape(confirmed_first_player.name)}</li>'}]
@@ -506,6 +507,7 @@ def test_api_status__confirmed_one_other_player__returns_correct_json(confirmed_
     assert len(status) == 4
     assert status['summary'] == game.status_summary()
     assert 'Waiting' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['id'] == confirmed_first_player.id
     assert status['players'] == [
         {'id': confirmed_first_player.id,
@@ -521,6 +523,7 @@ def test_api_status__confirmed_one_other_player__returns_correct_json(confirmed_
     assert len(status) == 4
     assert status['summary'] == game.status_summary()
     assert 'Waiting' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['id'] == confirmed_first_player.id
     assert status['players'] == [
         {'id': confirmed_first_player.id,
@@ -541,6 +544,7 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert len(status) == 4
     assert status['summary'] == game.status_summary()
     assert 'Waiting' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
         {'id': game.players[2].id,
@@ -556,6 +560,7 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert len(status) == 4
     assert status['summary'] == game.status_summary()
     assert 'Waiting' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
         {'id': game.players[0].id,
@@ -573,6 +578,7 @@ def test_api_status__several_confirmed_players__lists_players_in_order(confirmed
     assert len(status) == 4
     assert status['summary'] == game.status_summary()
     assert 'Waiting' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['id'] == confirmed_last_player.id
     assert status['players'] == [
         {'id': game.players[0].id,
@@ -594,6 +600,7 @@ def test_api_status__game_started__lists_players_in_order(started_game, client):
     assert len(status) == 7
     assert status['summary'] == started_game.status_summary()
     assert 'Bidding' in status['game_state']
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert f'with {started_game.current_card_count} cards' in status['game_state']
     assert f' 0 tricks bid so far' in status['game_state']
     assert f'cards/card{started_game.round.trump:02d}' in status['trump']
@@ -674,6 +681,7 @@ def test_api_status__bidding_process(started_game, client):
             # now in Round.State.PLAYING state.  More detailed
             # validations should be in another test.
             assert 'Playing' in status['game_state']
+        assert game_state_is_safe_for_HTML_insertion(status)
         assert status['summary'] == started_game.status_summary()
         assert f'with {started_game.current_card_count} cards' in status['game_state']
         assert f'cards/card{started_game.round.trump:02d}' in status['trump']
@@ -723,6 +731,7 @@ def test_api_status__playing(game_with_started_round, client):
             status = response.get_json()
             assert 'summary' in status
             assert 'playing' in status['game_state'].lower()
+            assert game_state_is_safe_for_HTML_insertion(status)
             assert status['id'] == p.id
             for (idx2, player_info) in enumerate(status['players']):
                 assert len(player_info) == 2
@@ -756,11 +765,12 @@ def test_api_status__playing(game_with_started_round, client):
         for idx, part in enumerate(observed_table.split('<img ')):
             if idx == 0:
                 continue  # no <img ...> tag in first split
-            # assume player.name needed no HTML escaping
+            # Player's name
+            escaped_name = minimal_HTML_escaping(players[idx - 1].name)
             # ... occurs once in mouseover text
-            assert f'title="{players[idx - 1].name}"' in part
+            assert f'title="{escaped_name}"' in part
             # ... occurs second time in normal text
-            assert f'>{players[idx - 1].name}<' in part
+            assert f'>{escaped_name}<' in part
         assert all(
             f'cards/card{c:02d}.png' in all_cards_html for c in all_cards_at_start)
         card = 0
@@ -809,8 +819,9 @@ def test_api_status__between_tricks(game_with_started_round, client):
     assert len(status['cards']) < len(last_status['cards'])
     assert status['trump'] == last_status['trump']
     assert status['game_state'].startswith(last_status['game_state'])
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['game_state'] != last_status['game_state']
-    assert trick_winner.name in status['game_state']
+    assert minimal_HTML_escaping(trick_winner.name) in status['game_state']
     assert status['id'] == last_status['id']
     assert len(status['players']) == len(last_status['players'])
     if trick_winner_id == players[-1].id:
@@ -879,6 +890,7 @@ def test_api_status__between_rounds(started_game, client):
     assert status['playable_cards'] == []
     assert status['cards'] == ''
     assert status['game_state'].startswith('Round finished.')
+    assert game_state_is_safe_for_HTML_insertion(status)
     assert status['game_state'] != last_status['game_state']
     assert all(fragment in status['game_state']
                for fragment in ('type="button"', players[-1].secret_id))
@@ -920,3 +932,22 @@ def test_organizer_url_for_confirmed_player(rikiki_app, confirmed_first_player):
     with rikiki_app.test_request_context():
         assert organizer_url_for_player(confirmed_first_player
                                         ) == f'/player/{confirmed_first_player.secret_id}/'
+
+
+def game_state_is_safe_for_HTML_insertion(status):
+    """Return True if input satisfies OWASP XSS Prevention Rule #1."""
+    # https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#rule-1-html-escape-before-inserting-untrusted-data-into-html-element-content"""
+    PATTERN = '<div id="finishRound">'
+    s = status['game_state'].split(PATTERN)[0]
+    if any(c in '''<>'"/''' for c in s):
+        return False
+    if '&' not in s:
+        return True
+    amps = s.split('&')
+    return all(any(p.startswith(entity) for entity in (
+        'amp;', 'lt;', 'gt;', 'quot;', '#x'))
+        for p in amps[1:])
+
+
+def minimal_HTML_escaping(s):
+    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')

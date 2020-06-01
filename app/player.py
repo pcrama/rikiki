@@ -199,6 +199,8 @@ BIDDING_PLAYER_LI_FRAGMENT = JINJA2_ENV.from_string(
     '<span class="player_name">{{ player.name }}</span> '
     '{{i18n}}.</li>')
 
+WINNER_FRAGMENT = JINJA2_ENV.from_string('  {{name}} {{i18n}}')
+
 i18n_card = _l("card")
 i18n_trick = _l("trick")
 
@@ -436,9 +438,10 @@ def game_state(
     elif game.round.state in [
             models.Round.State.BETWEEN_TRICKS,
             models.Round.State.DONE]:
-        winner = game.round.current_player.name + _(' won the trick.')
+        winner = WINNER_FRAGMENT.render(name=game.round.current_player.name,
+                                        i18n=_(' won the trick.'))
         if game.state == models.Game.State.PAUSED_BETWEEN_ROUNDS:
-            return _('Round finished.  ') + winner + \
+            return _('Round finished.') + winner + \
                 finish_round_fragment(player=player)
         else:
             return _('Playing %(card_count)s, %(bid_count)s.',

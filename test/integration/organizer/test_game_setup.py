@@ -77,11 +77,12 @@ def define_players(driver, organizer_secret):
     # of them).  As the participants confirm their presence, the
     # organizer's view is updated.
     players_in_memory = {}
-    for (unconfirmed_name, suffix) in [(INITIAL_PLAYER_NAMES[0], ' the Nun'),
-                                       (INITIAL_PLAYER_NAMES[2], ''),
+    for (unconfirmed_name, suffix) in [(INITIAL_PLAYER_NAMES[0],
+                                        ' the Nun" onload="alert("test");'),
+                                       (INITIAL_PLAYER_NAMES[2], '</html>'),
                                        (INITIAL_PLAYER_NAMES[1],
-                                        ' the Cannibal'),
-                                       (INITIAL_PLAYER_NAMES[3], ' II')]:
+                                        ' the <Cannibal>'),
+                                       (INITIAL_PLAYER_NAMES[3], ' I & I')]:
         player_link = player_dict[unconfirmed_name][1]
         with temporary_new_tab(driver, player_link):
             name_input = driver.find_element_by_id('player_name')

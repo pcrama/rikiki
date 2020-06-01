@@ -35,7 +35,7 @@ def first_player(game):
     return game.players[0]
 
 
-CONFIRMED_1ST_NAME = 'Confirmed in fixture'
+CONFIRMED_1ST_NAME = 'Confirmed "in" <fixture>'
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def confirmed_first_player(first_player):
     return first_player
 
 
-CONFIRMED_LAST_NAME = 'Fixture-confirmed, too'
+CONFIRMED_LAST_NAME = 'Fixture-confirmed & too'
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def game(rikiki_app):
 def started_game(game):
     for (idx, p) in enumerate(game.players):
         if idx != 3:
-            p.confirm('')
+            p.confirm(f'{p.name} <{idx}>')
     game.start_game()
     return game
 
