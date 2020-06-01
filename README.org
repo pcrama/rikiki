@@ -151,11 +151,17 @@ The Game is responsible for
   playing --> paused_between_rounds : round_finished
   paused_between_rounds --> playing : start_next_round\n--current_card_count > 0
   paused_between_rounds -> done : start_next_round\n--current_card_count == 0
+  done --> confirming : restart_with_same_players
   done --> [*]
 #+END_SRC
 
 #+RESULTS:
 [[file:doc/models_game_state_diagram.png]]
+
+The ~done~ → ~confirming~ transition is a convenience method: it
+allows the organizer to restart the game without having to distribute
+links to all Players again.  The ~restart_with_same_players~ method
+shuffles the players.
 
 **** Player
 #+BEGIN_SRC plantuml :file doc/models_player_state_diagram.png

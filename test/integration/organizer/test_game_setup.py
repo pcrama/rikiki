@@ -133,5 +133,18 @@ def dashboard(driver, organizer_secret):
             assert 'current_player' in p_li_classes
         else:
             assert 'current_player' not in p_li_classes
+    # There is an element to try and start a new game ...
+    start_new_game_elt = driver.find_element_by_id('start_new_game_submit')
+    start_new_game_elt.click()
+    # ... but the model won't let it be used.
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located(
+        (By.CSS_SELECTOR, '.error')))
+    # There is a link to create a new game ...
+    create_new_game_elt = driver.find_element_by_partial_link_text(
+        'Create a new game')
+    create_new_game_elt.click()
+    # ... and it brings up a new playerlist form to fill in
+    WebDriverWait(driver, 2).until(
+        EC.presence_of_element_located((By.ID, 'playerlist')))
     # TODO: make each player bid in turn and observe the progress of
     # current_player CSS class.

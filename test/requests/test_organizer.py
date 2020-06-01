@@ -6,7 +6,16 @@ import app
 from app.organizer import parse_playerlist
 from app.player import organizer_url_for_player
 
-from .helper import FLASH_ERROR, client, game, organizer_secret, rendered_template, rikiki_app, started_game
+from .helper import (
+    FLASH_ERROR,
+    client,
+    game,
+    game_with_started_round,
+    organizer_secret,
+    rendered_template,
+    rikiki_app,
+    started_game,
+)
 
 
 def test_organizer_get_with_wrong_secret(client):
@@ -293,3 +302,65 @@ def test_dashboard__game_started__renders_page(organizer_secret, client, started
     assert bytes(url_for('organizer.api_game_status',
                          organizer_secret=organizer_secret),
                  'utf-8') in response.data
+
+
+def test_restart_game__bad_organizer_secret__403(client):
+    response = client.post(f'/organizer/restart/with/same/players/',
+                           follow_redirects=True)
+    assert response.status_code == 403
+    response = client.post(f'/organizer/restart/with/same/players/',
+                           data={'organizer_secret': 'bad_secret'},
+                           follow_redirects=True)
+    assert response.status_code == 403
+
+
+def test_restart_game__get__forbidden_method(client):
+    response = client.get(f'/organizer/restart/with/same/players/',
+                          follow_redirects=True)
+    assert response.status_code == 405
+
+
+def test_restart_game__game_not_initialized_yet__redirects_to_setup_game(organizer_secret, client):
+    response = client.post(f'/organizer/restart/with/same/players/',
+                           data={'organizer_secret': organizer_secret},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    assert FLASH_ERROR in response.data
+    assert rendered_template(response, 'setup_game')
+
+
+def test_restart_game__game_not_started__redirect_to_wait_for_users(rikiki_app, client):
+    rikiki_app.create_game(
+        [app.models.Player(f'P{i}', f'S{i}') for i in range(5)])
+    response = client.post(f'/organizer/restart/with/same/players/',
+                           data={'organizer_secret': rikiki_app.organizer_secret},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    assert FLASH_ERROR in response.data
+    assert rendered_template(response, 'wait_for_users')
+
+
+def test_restart_game__game_playing__redirect_to_dashboard(rikiki_app, client, game_with_started_round):
+    response = client.post(f'/organizer/restart/with/same/players/',
+                           data={'organizer_secret': rikiki_app.organizer_secret},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    assert FLASH_ERROR in response.data
+    assert rendered_template(response, 'organizer.dashboard')
+
+
+def test_restart_game__game_done__happy_path(rikiki_app, client, game_with_started_round):
+    game = game_with_started_round
+    for p in game.confirmed_players:
+        p._cards = []
+    game._current_card_count = 0
+    game.round_finished()
+    assert game.state == game.State.PAUSED_BETWEEN_ROUNDS, "Precondition in middle of test not met"
+    game.start_next_round()
+    assert game.state == game.State.DONE, "Precondition in middle of test not met"
+    response = client.post(f'/organizer/restart/with/same/players/',
+                           data={'organizer_secret': rikiki_app.organizer_secret},
+                           follow_redirects=True)
+    assert response.status_code == 200
+    assert FLASH_ERROR not in response.data
+    assert rendered_template(response, 'wait_for_users')

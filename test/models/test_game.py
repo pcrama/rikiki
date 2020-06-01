@@ -233,3 +233,43 @@ def test_Game__status_summary(new_game_waiting_room):
         p.place_bid(0)
         summaries.append(game.status_summary())
         assert len(set(summaries)) == len(summaries)
+
+
+def test_Game_restart_with_same_players__invalid_state(new_game_waiting_room):
+    game = new_game_waiting_room
+    assert game.state == Game.State.CONFIRMING, "Precondition not met"
+    with pytest.raises(ModelError):
+        game.restart_with_same_players()
+    for idx, p in enumerate(game.players):
+        if idx != 1:
+            p.confirm('')
+    game.start_game()
+    assert game.state == Game.State.PLAYING, "Precondition in middle of test not met"
+    # Remember all information about players that may not change
+    players_first_game = [(p.name, p.id, p.secret_id, p.is_confirmed)
+                          for p in game.players]
+    with pytest.raises(ModelError):
+        game.restart_with_same_players()
+    # reset all players hands, so that they can join a new round
+    for p in game.confirmed_players:
+        p._cards = []
+    game._current_card_count = 0
+    game.round_finished()
+    assert game.state == Game.State.PAUSED_BETWEEN_ROUNDS, "Precondition in middle of test not met"
+    with pytest.raises(ModelError):
+        game.restart_with_same_players()
+    game.start_next_round()
+    assert game.state == Game.State.DONE, "Precondition in middle of test not met"
+    game.restart_with_same_players()
+    assert game.state == Game.State.CONFIRMING
+    players_second_game = [(p.name, p.id, p.secret_id, p.is_confirmed)
+                           for p in game.players]
+    # same amount of players ...
+    assert len(players_second_game) == len(players_first_game)
+    # ... with same details ...
+    for p in players_second_game:
+        # could write this `for ... assert' as `assert all(...)', but
+        # assertion message would contain less info
+        assert p in players_first_game
+    # ... yet order changed
+    assert any(x != y for x, y in zip(players_first_game, players_second_game))

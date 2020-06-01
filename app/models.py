@@ -115,6 +115,21 @@ class Game:
         self._round = Round(self, self._current_card_count)
         return self._round
 
+    def restart_with_same_players(self) -> None:
+        """Reset Game state to waiting room, shuffling Players."""
+        self._ensure_state(Game.State.DONE)
+        self._state = Game.State.CONFIRMING
+        self._confirmed_players = []
+        self._current_card_count = 0
+        self._round = None
+        old_players = [p.id for p in self._players]
+        # ensure we are not very unlucky and shuffle players list back
+        # into same order:
+        while True and len(self._players) > 1:
+            random.shuffle(self._players)
+            if old_players != [p.id for p in self._players]:
+                break
+
     def _ensure_state(
             self, state: Union[State, List[State]]) -> None:
         if isinstance(state, collections.abc.Iterable):

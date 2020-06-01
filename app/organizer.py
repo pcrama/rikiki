@@ -152,3 +152,31 @@ def api_game_status(organizer_secret):
         result['round'] = {'currentPlayer': game.round.current_player.id,
                            'state': game.round.state}
     return jsonify(result)
+
+
+@bp.route('/restart/with/same/players/', methods=('POST',))
+def restart_with_same_players():
+    """Reset Game to reuse existing Players."""
+    organizer_secret = request.form.get('organizer_secret', '')
+    if organizer_secret != current_app.organizer_secret:
+        abort(403)
+    else:
+        try:
+            game = current_app.game
+        except RuntimeError as e:
+            flash(str(e), 'error')
+            return redirect(url_for('organizer.setup_game',
+                                    organizer_secret=organizer_secret,
+                                    _method='GET'))
+        try:
+            game.restart_with_same_players()
+        except RuntimeError as e:
+            flash(str(e), 'error')
+            if game.state in [game.state.PLAYING,
+                              game.state.PAUSED_BETWEEN_ROUNDS]:
+                return render_template('organizer/dashboard.html',
+                                       organizer_secret=organizer_secret,
+                                       game=current_app.game)
+        return render_template('organizer/wait_for_users.html',
+                               organizer_secret=organizer_secret,
+                               players=current_app.game.players)
