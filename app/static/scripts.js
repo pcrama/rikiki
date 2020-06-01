@@ -107,6 +107,7 @@ async function updatePlayerStatusForOrganizer(statusUrl) {
 
 
 async function updateGameStatusOrganizerDashboard(statusUrl) {
+    updateTimer = setTimeout(updateGameStatusOrganizerDashboard, 1000 /* milliseconds */, statusUrl);
     const response = await fetch(statusUrl, {
             method: 'GET',
             mode: 'cors',
@@ -119,6 +120,7 @@ async function updateGameStatusOrganizerDashboard(statusUrl) {
             nav[0].innerHTML = `<h1 class="error">Server error</h1>`;
             nav[0].children[0].textContent += `: ${response.status}, ${response.statusText}`;
         }
+        clearTimeout(updateTimer);
         return -1;
     }
     const data = await response.json();
@@ -154,7 +156,6 @@ async function updateGameStatusOrganizerDashboard(statusUrl) {
             + (roundState ? `.  Players are ${roundStateName(roundState)}`:'')
             + '.';
     }
-    updateTimer = setTimeout(updateGameStatusOrganizerDashboard, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
 }
 
@@ -195,6 +196,7 @@ function extractPlayerSecret(url) {
 }
 
 async function updatePlayerDashboard(statusUrl) {
+    updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
     const response = await fetch(maybeJoin(statusUrl, lastGameStatusSummary), {
         method: 'GET',
         mode: 'cors',
@@ -207,6 +209,7 @@ async function updatePlayerDashboard(statusUrl) {
             nav[0].innerHTML = `<h1 class="error">Server error</h1>`;
             nav[0].children[0].textContent += `: ${response.status}, ${response.statusText}`;
         }
+        clearTimeout(updateTimer);
         return -1;
     }
     const data = await response.json();
@@ -298,7 +301,6 @@ async function updatePlayerDashboard(statusUrl) {
         }
     }
     lastGameStatusSummary = newStatusSummary;
-    updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
 }
 
