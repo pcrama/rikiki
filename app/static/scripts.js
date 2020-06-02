@@ -73,12 +73,22 @@ const currentPlayerClass = 'current_player'; // css class defined in style.css
 
 
 async function updatePlayerStatusForOrganizer(statusUrl) {
-    const response = await fetch(statusUrl, {
+    let delay = 1000 /* milliseconds */;
+    let response = null;
+    try {
+        response = await fetch(statusUrl, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
             credentials: 'same-origin',
             redirect: 'follow'});
+    } catch {
+        delay *= 3;
+    }
+    updateTimer = setTimeout(updatePlayerStatusForOrganizer, delay, statusUrl);
+    if (null == response) {
+        return updateTimer;
+    }
     if (!response.ok) {
         const nav = document.getElementsByTagName('nav');
         if (nav) {
@@ -88,6 +98,7 @@ async function updatePlayerStatusForOrganizer(statusUrl) {
         Array.from(document.getElementsByTagName('input')).forEach((item, _index, _array) => {
             item.disabled = true;
         });
+        clearTimeout(updateTimer);
         return -1;
     }
     const data = await response.json();
@@ -101,19 +112,27 @@ async function updatePlayerStatusForOrganizer(statusUrl) {
             li.children[1].textContent = prependHostName(data.players[p].url);
         }
     }
-    updateTimer = setTimeout(updatePlayerStatusForOrganizer, 1000 /* milliseconds */, statusUrl);
     return updateTimer;
 }
 
 
 async function updateGameStatusOrganizerDashboard(statusUrl) {
-    updateTimer = setTimeout(updateGameStatusOrganizerDashboard, 1000 /* milliseconds */, statusUrl);
-    const response = await fetch(statusUrl, {
+    let delay = 1000 /* milliseconds */;
+    let response = null;
+    try {
+        response = await fetch(statusUrl, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
             credentials: 'same-origin',
             redirect: 'follow'});
+    } catch {
+        delay *= 3;
+    }
+    updateTimer = setTimeout(updateGameStatusOrganizerDashboard, delay, statusUrl);
+    if (null == response) {
+        return updateTimer;
+    }
     if (!response.ok) {
         const nav = document.getElementsByTagName('nav');
         if (nav) {
@@ -196,13 +215,22 @@ function extractPlayerSecret(url) {
 }
 
 async function updatePlayerDashboard(statusUrl) {
-    updateTimer = setTimeout(updatePlayerDashboard, 1000 /* milliseconds */, statusUrl);
-    const response = await fetch(maybeJoin(statusUrl, lastGameStatusSummary), {
-        method: 'GET',
-        mode: 'cors',
-        cache: 'no-cache',
-        credentials: 'same-origin',
-        redirect: 'follow'});
+    let delay = 1000 /* milliseconds */;
+    let response = null;
+    try {
+        response = await fetch(maybeJoin(statusUrl, lastGameStatusSummary), {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            redirect: 'follow'});
+    } catch {
+        delay *= 3;
+    }
+    updateTimer = setTimeout(updatePlayerDashboard, delay, statusUrl);
+    if (null == response) {
+        return updateTimer;
+    }
     if (!response.ok) {
         const nav = document.getElementsByTagName('nav');
         if (nav) {
@@ -255,13 +283,20 @@ async function updatePlayerDashboard(statusUrl) {
                         let formData = new FormData();
                         formData.append('secret_id', secretId);
                         formData.append('card', spanElt.id.substr(1));
-                        const response = await fetch(playUrl, {
-                            method: 'POST',
-                            body: formData,
-                            mode: 'cors',
-                            cache: 'no-cache',
-                            credentials: 'same-origin',
-                            redirect: 'follow'});
+                        let response;
+                        try {
+                            response = await fetch(playUrl, {
+                                method: 'POST',
+                                body: formData,
+                                mode: 'cors',
+                                cache: 'no-cache',
+                                credentials: 'same-origin',
+                                redirect: 'follow'});
+                        } catch (e) {
+                            playError.classList.add('error');
+                            playError.textContent = `${e} Please retry/veuillez réessayer`;
+                            return;
+                        }
                         if (!response.ok) {
                             playError.classList.add('error');
                             playError.textContent = `${response.status}, ${response.statusText}`;
@@ -311,13 +346,20 @@ async function submitFinishRound(secretId) {
     const finishRoundUrl = '/player/finish/round/';
     const formData = new FormData();
     formData.append('secret_id', secretId);
-    const response = await fetch(finishRoundUrl, {
-        method: 'POST',
-        body: formData,
-        mode: 'cors',
-        cache: 'no-cache',
-        credentials: 'same-origin',
-        redirect: 'follow'});
+    let response;
+    try {
+        response = await fetch(finishRoundUrl, {
+            method: 'POST',
+            body: formData,
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            redirect: 'follow'});
+    } catch (e) {
+        finishRoundError.classList.add('error');
+        finishRoundError.textContent = `${e} Please retry/veuillez réessayer`;
+        return false;
+    }
     if (!response.ok) {
         finishRoundError.classList.add('error');
         finishRoundError.textContent = `${response.status}, ${response.statusText}`;
@@ -340,13 +382,20 @@ async function submitBid(e) {
     clearElement(bidError);
     bidError.classList.remove('error');
     const bidUrl = '/player/place/bid/';
-    const response = await fetch(bidUrl, {
-        method: 'POST',
-        body: new FormData(bidElt),
-        mode: 'cors',
-        cache: 'no-cache',
-        credentials: 'same-origin',
-        redirect: 'follow'});
+    let response;
+    try {
+        response = await fetch(bidUrl, {
+            method: 'POST',
+            body: new FormData(bidElt),
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            redirect: 'follow'});
+    } catch (e) {
+        bidError.classList.add('error');
+        bidError.textContent = `${e} Please retry/veuillez réessayer`;
+        return false;
+    }        
     if (!response.ok) {
         bidError.classList.add('error');
         bidError.textContent = `${response.status}, ${response.statusText}`;
