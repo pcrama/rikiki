@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-06-01 21:22+0200\n"
+"POT-Creation-Date: 2020-06-04 21:34+0200\n"
 "PO-Revision-Date: 2020-05-24 20:40+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -71,7 +71,7 @@ msgstr ", %(extra_tricks)s de trop"
 #: player.py:251
 #, python-format
 msgid ": there are %(missing_tricks)s missing"
-msgstr ", %(missing_tricks) trop peu"
+msgstr ", %(missing_tricks)s trop peu"
 
 #: player.py:283
 msgid "Finish Round"
