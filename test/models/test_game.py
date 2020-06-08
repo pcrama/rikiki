@@ -157,18 +157,29 @@ def test_Game__full_scenario():
     assert game.state == Game.State.PLAYING
     assert game.confirmed_players == [
         p for (idx, p) in enumerate(players) if idx != PLAYER_DOES_NOT_SHOW_UP]
-    round_count = 0
+    MAX_CARDS_PER_PLAYER = MAX_CARDS // len(game.confirmed_players)
     previous_card_count = None
     confirmed_players = list(game.confirmed_players)
     # Needed to select a slice covering all players, but starting at
     # the right player for the trick in the given round
     full_range = confirmed_players + confirmed_players
-    while game.state == Game.State.PLAYING and round_count < MAX_CARDS:
+    # from MAX_CARDS_PER_PLAYER down to 1 then back up to MAX_CARDS_PER_PLAYER,
+    # i.e. play all rounds up to end of game
+    for round_count in range(2 * MAX_CARDS_PER_PLAYER - 1):
         round_ = game.round
-        if previous_card_count is not None:
-            assert game.current_card_count == previous_card_count - 1
+        if previous_card_count == 1:
+            # must start counting up again
+            assert game.current_card_count == 2
+        elif previous_card_count == MAX_CARDS_PER_PLAYER:
+            # must start counting down again
+            assert game.current_card_count == MAX_CARDS_PER_PLAYER - 1
+        elif previous_card_count is not None:
+            assert abs(game.current_card_count - previous_card_count) == 1
+        if game.current_card_count == MAX_CARDS_PER_PLAYER:
+            assert round_.trump is None
+        else:
+            assert round_.trump is not None
         previous_card_count = game.current_card_count
-        round_count += 1
         assert round_._state == Round.State.BIDDING
         for p in game.confirmed_players:
             assert p.card_count == game.current_card_count
@@ -207,7 +218,7 @@ def test_Game__full_scenario():
         assert game.round is round_
         assert sum(p.tricks for p in confirmed_players) == game.current_card_count
         game.start_next_round()
-    assert game.current_card_count == 0
+    # The game stops:
     assert game.state == Game.State.DONE
 
 
@@ -253,7 +264,8 @@ def test_Game_restart_with_same_players__invalid_state(new_game_waiting_room):
     # reset all players hands, so that they can join a new round
     for p in game.confirmed_players:
         p._cards = []
-    game._current_card_count = 0
+    game._current_card_count = game.max_cards_per_player()
+    game._increasing = True
     game.round_finished()
     assert game.state == Game.State.PAUSED_BETWEEN_ROUNDS, "Precondition in middle of test not met"
     with pytest.raises(ModelError):

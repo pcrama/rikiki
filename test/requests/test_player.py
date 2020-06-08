@@ -19,6 +19,7 @@ from .helper import (
     first_player,
     game,
     game_with_started_round,
+    minimal_HTML_escaping,
     rendered_template,
     rikiki_app,
     started_game,
@@ -418,7 +419,7 @@ def test_finish_round__bad_secret__403(confirmed_first_player, game_with_started
     assert response.status_code == 403
 
 
-def test_finish_round__last_round(game_with_started_round, client):
+def test_finish_round__1_card_per_player__starts_counting_up_again(game_with_started_round, client):
     game = game_with_started_round
     round_ = game.round
     assert round_.state == models.Round.State.PLAYING, "Precondition for test not met"
@@ -442,7 +443,8 @@ def test_finish_round__last_round(game_with_started_round, client):
         status = response.get_json()
         assert status['ok']
         assert len(status) == 1
-        assert game.state == models.Game.State.DONE
+        assert game.state == models.Game.State.PLAYING
+        assert game.current_card_count == 2
 
 
 def test_finish_round__happy_path(game_with_started_round, client):
@@ -603,7 +605,7 @@ def test_api_status__game_started__lists_players_in_order(started_game, client):
     assert game_state_is_safe_for_HTML_insertion(status)
     assert f'with {started_game.current_card_count} cards' in status['game_state']
     assert f' 0 tricks bid so far' in status['game_state']
-    assert f'cards/card{started_game.round.trump:02d}' in status['trump']
+    assert 'cards/card' not in status['trump']
     assert status['round'] == {
         'state': models.Round.State.BIDDING,
         'current_player': started_game.confirmed_players[0].id}
@@ -684,7 +686,7 @@ def test_api_status__bidding_process(started_game, client):
         assert game_state_is_safe_for_HTML_insertion(status)
         assert status['summary'] == started_game.status_summary()
         assert f'with {started_game.current_card_count} cards' in status['game_state']
-        assert f'cards/card{started_game.round.trump:02d}' in status['trump']
+        assert 'cards/card' not in status['trump']
         if idx < len(players) - 1:
             assert status['round'] == {
                 'state': int(models.Round.State.BIDDING),
@@ -748,7 +750,7 @@ def test_api_status__playing(game_with_started_round, client):
                 assert status['playable_cards'] == []
             assert all(
                 f'cards/card{c:02d}.png' in status['cards'] for c in p.cards)
-            assert f'cards/card{game.round.trump:02d}' in status['trump']
+            assert 'cards/card' not in status['trump']
             assert status['round'] == {'state': int(models.Round.State.PLAYING),
                                        'current_player': players[idx].id}
             if p is players[0]:
@@ -938,7 +940,3 @@ def game_state_is_safe_for_HTML_insertion(status):
     return all(any(p.startswith(entity) for entity in (
         'amp;', 'lt;', 'gt;', 'quot;', '#x'))
         for p in amps[1:])
-
-
-def minimal_HTML_escaping(s):
-    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')

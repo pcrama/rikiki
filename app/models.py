@@ -80,6 +80,8 @@ class Game:
         self._current_card_count: int = 0
         """How many cards are used in the current round."""
         self._round: Optional["Round"]
+        self._increasing = False
+        """Number of cards per Players decreasing or increasing."""
 
     def status_summary(self) -> str:
         """Return an identifier for the current state.
@@ -102,6 +104,14 @@ class Game:
                 pass
         return result
 
+    def max_cards_per_player(self):
+        """Return maximum amount of cards that can be dealt to each Player."""
+        if len(self.confirmed_players) > 0:
+            return MAX_CARDS // len(self.confirmed_players)
+        else:
+            return ModelError(
+                f'Game in state {self._state} has 0 confirmed players')
+
     def start_game(self) -> "Round":
         """Start first Round of the Game."""
         self._ensure_state(Game.State.CONFIRMING)
@@ -111,7 +121,7 @@ class Game:
             raise IllegalStateError("At least 2 confirmed players necessary")
         self._state = Game.State.PLAYING
         self._confirmed_players = confirmed_players
-        self._current_card_count = MAX_CARDS // len(confirmed_players)
+        self._current_card_count = self.max_cards_per_player()
         self._round = Round(self, self._current_card_count)
         return self._round
 
@@ -213,15 +223,19 @@ class Game:
             pass
         else:
             self._ensure_state(Game.State.PAUSED_BETWEEN_ROUNDS)
-            self._current_card_count -= 1
-            if self._current_card_count > 0:
-                self._state = Game.State.PLAYING
-                # First player of next Round shifts
-                first_player = self._confirmed_players.pop(0)
-                self._confirmed_players.append(first_player)
-                self._round = Round(self, self._current_card_count)
-            else:
+            if self._increasing and (
+                    self._current_card_count >= self.max_cards_per_player()):
                 self._state = Game.State.DONE
+                return
+            self._current_card_count += (1 if self._increasing else -1)
+            if self._current_card_count < 1:
+                self._increasing = True
+                self._current_card_count = 2
+            self._state = Game.State.PLAYING
+            # First player of next Round shifts
+            first_player = self._confirmed_players.pop(0)
+            self._confirmed_players.append(first_player)
+            self._round = Round(self, self._current_card_count)
 
 
 PLAYER_COUNTER = 0
@@ -723,8 +737,11 @@ class Round:
         for (i, p) in enumerate(self._players):
             p.accept_cards(
                 self, cards[(i * how_many_cards):((i + 1) * how_many_cards)])
-        trump_idx = how_many_cards * len(self._players)
-        self._trump = None if trump_idx >= MAX_CARDS else cards[trump_idx]
+        if (how_many_cards + 1) * len(self._players) > MAX_CARDS:
+            self._trump = None
+        else:
+            trump_idx = how_many_cards * len(self._players)
+            self._trump = cards[trump_idx]
 
     @property
     def trump(self) -> Optional[Card]:

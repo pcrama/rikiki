@@ -103,3 +103,7 @@ def rendered_template(response, t):
         'player.too-late': b'!!player.too-late!-1938575116592361607!!',
     }[t]
     return marker in response.data
+
+
+def minimal_HTML_escaping(s):
+    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')

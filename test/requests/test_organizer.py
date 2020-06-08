@@ -11,6 +11,7 @@ from .helper import (
     client,
     game,
     game_with_started_round,
+    minimal_HTML_escaping,
     organizer_secret,
     rendered_template,
     rikiki_app,
@@ -351,9 +352,11 @@ def test_restart_game__game_playing__redirect_to_dashboard(rikiki_app, client, g
 
 def test_restart_game__game_done__happy_path(rikiki_app, client, game_with_started_round):
     game = game_with_started_round
+    game_players = [p for p in game.players]
     for p in game.confirmed_players:
         p._cards = []
-    game._current_card_count = 0
+    game._increasing = True
+    game._current_card_count = game.max_cards_per_player()
     game.round_finished()
     assert game.state == game.State.PAUSED_BETWEEN_ROUNDS, "Precondition in middle of test not met"
     game.start_next_round()
@@ -364,3 +367,5 @@ def test_restart_game__game_done__happy_path(rikiki_app, client, game_with_start
     assert response.status_code == 200
     assert FLASH_ERROR not in response.data
     assert rendered_template(response, 'wait_for_users')
+    for p in game.players:
+        assert minimal_HTML_escaping(p.name).encode('utf-8') in response.data

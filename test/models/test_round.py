@@ -102,9 +102,15 @@ def test_Round__deal_cards__sets_trump_card(
     assert round_.trump is not None
 
 
-def test_Round__deal_cards__sets_no_trump_card_when_evenly_divided():
+def test_Round__deal_cards__sets_no_trump_card_when_maximum_card_amount_is_dealt():
     (_, round_) = make_round_with_players_list(
         [mock_player() for _ in range(4)], 13)
+    assert round_.trump is None
+    (_, round_) = make_round_with_players_list(
+        [mock_player() for _ in range(5)], 10)
+    assert round_.trump is None
+    (_, round_) = make_round_with_players_list(
+        [mock_player() for _ in range(6)], 8)
     assert round_.trump is None
 
 

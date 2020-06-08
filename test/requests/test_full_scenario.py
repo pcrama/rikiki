@@ -1,3 +1,4 @@
+import itertools
 import random
 
 import flask
@@ -44,7 +45,11 @@ def test_full_scenario(rikiki_app, organizer_secret, client):
         follow_redirects=True)
     assert response.status_code == 200
     assert FLASH_ERROR not in response.data
-    for cards_to_play in range(game.current_card_count, 0, -1):
+    for cards_to_play in itertools.chain(
+            # first cards count downwards: 7, 6, 5, 4, 3, 2, 1 ...
+            range(game.current_card_count, 0, -1),
+            # ... then upwards again: 2, 3, 4, 5, 6, 7
+            range(2, game.current_card_count + 1)):
         assert game.state == models.Game.State.PLAYING
         assert game.round.state == models.Round.State.BIDDING
         for (idx, p) in enumerate(game.confirmed_players):
@@ -107,4 +112,5 @@ def test_full_scenario(rikiki_app, organizer_secret, client):
                             f'/player/{player.secret_id}/api/status/')
                         assert response.status_code == 200
                         assert response.is_json
+    # game never stops
     assert game.state == models.Game.State.DONE

@@ -45,7 +45,7 @@ dealt and the game proceeds.
 - Once joined, the player can observe the other players joining the
   game.  The player has no cards yet.
 
-** As the organizer, I want to start the game/next round
+** As the organizer, I want to start the game
 - The organizer
   1. Selects how many cards to deal (prefilled with max amount of
      cards available per player, then decreasing by 1 after each
@@ -55,8 +55,18 @@ dealt and the game proceeds.
 - Once the game is started, no more players can connect to the game.
 - A player leaving the game is outside the scope of this application.
 - The cards are dealt to all players according to the rules of the
-  game.  If not all cards can be dealt, the top card is turned: its
-  colour sets the trump's colour.
+  game:
+  - During the first round, the maximum number of cards available is
+    dealt (e.g. 7 cards for 7 players).  There is no trump for this
+    round.
+  - Each following round is played with one card less (e.g. 6 cards
+    for the second round with 7 players) and a trump card (the first
+    card from the deck that was not dealt).
+  - Once the round with 1 card per player has been played, rounds
+    continue counting up until the maximum number of cards is reached
+    again.
+  - For the last round with the maximum available number of cards per
+    player, there is no trump (like the first round).
 - All players can see only their cards and the trump colour.
 
 ** As a player, I want to bid when it's my turn
@@ -72,7 +82,16 @@ dealt and the game proceeds.
 - The round ends when all cards have been played.
 - Scoring is outside the scope of this application.
 
-** As an organizer, I want to start a new gama
+** As a player, I want to start the next round
+- Once all players have put their last card down, each gets a button
+  to proceed to the next round.
+- This is an explicit step so the players can see the last trick and
+  the results before moving on.
+- Races (2 players or more clicking the "start new round" button at
+  the same time) are resolved by silently ignoring the presses when
+  the round is still in bidding state.
+
+** As an organizer, I want to start a new game
 - This 'kills' the previously running game.
 - It is OK for the organizer to enter the player names again.
 
@@ -140,6 +159,7 @@ The Game is responsible for
   participant "Player2" as P2
   participant "Player3" as P3
   participant "Player4" as P4
+  participant "Player5" as P5
   participant "Round 1" as R1
   participant "Round 2" as R2
   G --> P1 : _~_init~_~_
@@ -166,8 +186,8 @@ The Game is responsible for
   [*] --> confirming : _~_init~_~_
   confirming --> playing : start_game
   playing --> paused_between_rounds : round_finished
-  paused_between_rounds --> playing : start_next_round\n--current_card_count > 0
-  paused_between_rounds -> done : start_next_round\n--current_card_count == 0
+  paused_between_rounds --> playing : start_next_round, number of cards\ncounts down to 1 then up again
+  paused_between_rounds -> done : start_next_round when card\ncount is back to max
   done --> confirming : restart_with_same_players
   done --> [*]
 #+END_SRC
