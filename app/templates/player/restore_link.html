@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block title %}{{player.name}}{% endblock %}
+{% block header %}{{_("Restore your player link")}}{% endblock %}
+
+{% block content %}
+  <!-- !!player.restore_link!982130456353280665!! -->
+  <p>{{_("This will invalidate your prior player link")}}</p>
+  <form method="post" action="{{ url_for('player.restore_link') }}" enctype="multipart/form-data">
+    <input type="hidden" value="{{ game.csrf_token }}" id="csrf_token" name="csrf_token"/>
+    <input type="submit" value="{{_("Submit")}}" id="submit_restore"/>
+  </form>
+{% endblock %}

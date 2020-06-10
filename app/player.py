@@ -5,12 +5,12 @@ import os
 from typing import List, Optional, Set
 
 from flask import (Blueprint, abort, current_app, flash, jsonify,
-                   redirect, render_template, request, url_for)
+                   redirect, render_template, request, session, url_for)
 import jinja2
 from flask_babel import _  # type: ignore
 from flask_babel import lazy_gettext as _l  # type: ignore
 
-from . import models
+from . import USER_COOKIE, models
 
 bp = Blueprint('player', __name__, url_prefix='/player')
 
@@ -80,6 +80,7 @@ def confirm(secret_id='', game=None):
                                player_name=player.name)
     if request.method == 'POST':
         player.confirm(request.form.get('player_name', ''))
+        session[USER_COOKIE] = player.secret_id
         return redirect(url_for('player.player',
                                 secret_id=player.secret_id,
                                 _method='GET'))
@@ -452,3 +453,36 @@ def game_state(
                      ) + winner
     return (f'NOT REACHED game.state={game.state}, round:'
             f'{"No Round" if game._round is None else game._round.state}')
+
+
+@bp.route('/restore/link/', methods=('GET', 'POST',))
+@with_valid_game
+def restore_link(game=None):
+    """Control player's link restore operation.
+
+    GET: return page with simple submit button and hidden CSRF token
+    POST: if CSRF token is right, restore player.
+    """
+    try:
+        secret_id = session[USER_COOKIE]
+    except KeyError:
+        abort(403)
+    try:
+        player = next(p for p in game.players if p.secret_id == secret_id)
+    except StopIteration:
+        abort(403)
+    if not player.is_confirmed:
+        abort(403)
+    if request.method == 'GET':
+        return render_template(
+            'player/restore_link.html', game=game, player=player)
+    elif request.method == 'POST':
+        if request.form.get('csrf_token', '') != game.csrf_token:
+            abort(404)
+        player.update_secret()
+        session[USER_COOKIE] = player.secret_id
+        return redirect(url_for('player.player',
+                                secret_id=player.secret_id,
+                                _method='GET'))
+    else:
+        abort(405)  # NOT REACHED

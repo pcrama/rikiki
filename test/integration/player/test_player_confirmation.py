@@ -19,15 +19,6 @@ from ..helper import (
 )
 
 
-def get_player_dashboard_elements(driver):
-    return (
-        driver.find_element_by_id('game_status'),
-        driver.find_element_by_id('other_players'),
-        driver.find_element_by_id('stats'),
-        driver.find_element_by_id('cards'),
-    )
-
-
 def happy_path(driver, organizer_secret):
     player_dict = create_a_game(driver, organizer_secret)
     player_unconfirmed_names = list(player_dict.keys())

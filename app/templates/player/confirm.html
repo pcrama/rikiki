@@ -5,6 +5,7 @@
 {% block content %}
   <!-- !!player.confirm!1473724732052034803!! -->
   <p>{{_("Please confirm your name")}}</p>
+  <p>{{_("This application uses a session cookie to allow you to recover your personal link valid during the game.  By clicking the 'Submit' button below, you agree to its usage.  This session cookie is strictly necessary for the site and expires after 2h of inactivity.")}}
   <form method="post" action="{{ url_for('player.confirm') }}" enctype="multipart/form-data">
     <input type="hidden" value="{{ secret_id }}" id="secret_id" name="secret_id"/>
     <label for="player_name">{{_("Your Name")}}</label>

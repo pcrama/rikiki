@@ -17,6 +17,8 @@ class Config(object):
     SUPPORTED_LANGUAGES = {'en': 'English', 'fr': 'Français'}
     BABEL_DEFAULT_LOCALE = 'fr'
     BABEL_DEFAULT_TIMEZONE = 'UTC'
+    SESSION_COOKIE_SAMESITE = 'Strict'
+    SESSION_COOKIE_HTTPONLY = True
 
 
 class DevelopmentConfig(Config):

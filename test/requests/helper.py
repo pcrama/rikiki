@@ -1,7 +1,12 @@
 """Helpers for request tests."""
 # -*- coding: utf-8 -*-
 
+from contextlib import contextmanager
+from typing import AnyStr, Union
+
 import pytest  # type: ignore
+
+import flask
 
 import app  # type: ignore
 
@@ -101,9 +106,48 @@ def rendered_template(response, t):
         'player.confirm': b'!!player.confirm!1473724732052034803!!',
         'player.player': b'!!player.player!1598872951605016181!!',
         'player.too-late': b'!!player.too-late!-1938575116592361607!!',
+        'player.restore_link': b'!!player.restore_link!982130456353280665!!',
     }[t]
     return marker in response.data
 
 
 def minimal_HTML_escaping(s):
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+@contextmanager
+def player_session(client, player: Union[app.Player, None, str]):
+    """Helper for setup_player_session."""
+    # normalize parameter to a secret_id:
+    if player is None:
+        secret_id = None
+    else:
+        if isinstance(player, str):
+            secret_id = player
+        else:
+            secret_id = player.secret_id
+
+    with client.session_transaction() as session:
+        # save current session cookie
+        try:
+            old_cookie = session[app.USER_COOKIE]
+        except KeyError:
+            has_cookie = False
+        else:
+            has_cookie = True
+
+        # change session
+        if secret_id is None:
+            if has_cookie:
+                session.pop(app.USER_COOKIE)
+        else:
+            session[app.USER_COOKIE] = secret_id
+
+        # execute code in modified session
+        yield session
+
+
+def setup_player_session(client, player):
+    """Setup session with player's secret."""
+    with player_session(client, player):
+        pass

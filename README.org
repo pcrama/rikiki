@@ -95,6 +95,25 @@ dealt and the game proceeds.
 - This 'kills' the previously running game.
 - It is OK for the organizer to enter the player names again.
 
+** As a player, I want to reset my link
+The player's hand is displayed in a page protected by a secret that is
+stored in the query parameters.  If that page is lost, the player
+loses access to the game and the game cannot proceed.
+
+There should be 1! common URL for all players (easier to share for the
+organizer) where each player can reset their secret id to recover
+their dashboard.
+
+The app sets a cookie (valid for 2h) for each player.  There will be
+limited CSRF protection (based on a secret generated for the game and
+a 'Lax' samesite cookie policy).  Each player will be able to access
+only her reset page based on her cookie.
+
+The advantage of having only the player reset page using the cookie is
+that it is easier for the automated tests to run in 1! selenium
+session where each Player is identified by the link and can coexist
+with other Players in other browser tabs.
+
 * Implementation
 ** Hosting
 - Probably on repl.it, with settings similar to these and a link to

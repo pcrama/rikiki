@@ -18,7 +18,7 @@ def ff_driver():
     """Create a webdriver using Firefox."""
     from selenium.webdriver.firefox.options import Options  # type: ignore
     options = Options()
-#    options.headless = True
+    options.headless = True
     driver = webdriver.Firefox(options=options)
     yield driver
     driver.close()
@@ -81,6 +81,53 @@ def temporary_new_tab(driver, url=None):
     driver.switch_to.window(tab_window)
     driver.close()
     driver.switch_to.window(main_window)
+
+
+KEEP_EXISTING_SESSION = ('keep_existing_session', )
+
+
+@contextmanager
+def temporary_session(driver, session=None, url=None):
+    """Execute in the context of a different session.
+
+    First, set session cookie:
+    1. str -> driver.add_cookie({'name': 'session', 'value': str})
+    2. dict -> driver.add_cookie({k: v for k, v in dict.items() if k != 'domain'})
+    3. None -> driver.delete_cookie('session')
+
+    Second, if url is provided, get it.
+
+    Third, yield (i.e. execute block)
+
+    Then restore cookie state, undoing step 1."""
+    DEFAULT_COOKIE_NAME = 'session'
+    # normalize cookie
+    if isinstance(session, str):
+        session = {'name': DEFAULT_COOKIE_NAME, 'value': session}
+    elif session is KEEP_EXISTING_SESSION:
+        session = driver.get_cookie(DEFAULT_COOKIE_NAME)
+    cookie_name = DEFAULT_COOKIE_NAME if session is None else session['name']
+
+    # save prior value
+    cookie_status = {'before': driver.get_cookie(cookie_name)}
+    if session is None:
+        driver.delete_cookie(cookie_name)
+    else:
+        driver.add_cookie({k: v for k, v in session.items() if k != 'domain'})
+
+    if url is not None:
+        driver.get(url)
+
+    yield cookie_status
+
+    # save 'output' cookie value
+    cookie_status['after'] = driver.get_cookie(cookie_name)
+
+    if cookie_status['before'] is None:
+        driver.delete_cookie(cookie_name)
+    else:
+        driver.add_cookie(
+            {k: v for k, v in cookie_status['before'].items() if k != 'domain'})
 
 
 class element_has_css_class:

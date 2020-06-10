@@ -6,6 +6,8 @@ from .player.test_player_dashboard import while_others_confirm as test_player_da
 from .player.test_player_dashboard import while_bidding as test_player_dashboard_while_bidding
 from .player.test_player_dashboard import while_playing as test_player_dashboard_while_playing
 
+from .player.test_player_restore import while_others_confirm as test_player_restore_while_others_confirm
+from .player.test_player_restore import while_bidding as test_player_restore_while_bidding
 
 from .organizer.test_game_setup import define_players as test_game_setup_define_player
 from .organizer.test_game_setup import dashboard as test_game_setup_dashboard

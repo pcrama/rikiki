@@ -20,6 +20,10 @@ def test_Game__init__has_players(new_game_waiting_room):
     assert new_game_waiting_room.players is not None
 
 
+def test_Game__init__has_csrf_token(new_game_waiting_room):
+    assert new_game_waiting_room.csrf_token is not None
+
+
 def test_Game__init__has_no_confirmed_players_yet(new_game_waiting_room):
     assert new_game_waiting_room.confirmed_players == []
 

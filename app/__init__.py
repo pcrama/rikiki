@@ -1,4 +1,5 @@
 """Web application to play rikiki over the web."""
+import datetime
 import os
 from typing import List, Optional
 
@@ -47,6 +48,12 @@ def create_app(config_name):
     app.register_blueprint(player.bp)
     log_organizer_secret_to_console(app)
 
+    @app.before_request
+    def before_request():
+        flask.session.permanent = True
+        app.permanent_session_lifetime = datetime.timedelta(minutes=120)
+        flask.session.modified = True
+
     # Setup i18n
     babel = Babel(app)
     @babel.localeselector
@@ -82,3 +89,7 @@ def page_not_found(_):
     """Render the page not found page."""
     log_organizer_secret_to_console(flask.current_app)
     return flask.render_template('404.html'), 404
+
+
+USER_COOKIE = 'rikiki_session_id'
+"""Name of the key where user secret is stored in session cookie."""

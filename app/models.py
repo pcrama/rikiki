@@ -82,6 +82,8 @@ class Game:
         self._round: Optional["Round"]
         self._increasing = False
         """Number of cards per Players decreasing or increasing."""
+        self._csrf_token = "".join(f"{x:02X}" for x in os.urandom(16))
+        """All requests using a session cookie must contain this token."""
 
     def status_summary(self) -> str:
         """Return an identifier for the current state.
@@ -149,6 +151,11 @@ class Game:
         elif self._state != state:
             raise IllegalStateError(
                 f"Expected {state} for game, not {self._state}")
+
+    @property
+    def csrf_token(self) -> str:
+        """Return CSRF token."""
+        return self._csrf_token
 
     @property
     def players(self) -> List["Player"]:
@@ -252,7 +259,7 @@ class Player:
         """The display name of the Player as proposed by the Organizer."""
         self._secret_id = secret_id
         """A random string to authenticate the confirmation process."""
-        self._confirmed_secret_id = "".join(f"{x:02X}" for x in os.urandom(16))
+        self._confirmed_secret_id = self._generate_confirmed_secret_id()
         """A random string to authenticate all links after confirmation."""
         global PLAYER_COUNTER
         PLAYER_COUNTER += 1
@@ -286,6 +293,14 @@ a Round."""
         return (self._confirmed_secret_id
                 if self.is_confirmed
                 else self._secret_id)
+
+    def _generate_confirmed_secret_id(self) -> str:
+        return "".join(f"{x:02X}" for x in os.urandom(16))
+
+    def update_secret(self):
+        """Change Player's secret_id assuming she's confirmed."""
+        self._ensure_confirmed()
+        self._confirmed_secret_id = self._generate_confirmed_secret_id()
 
     @property
     def id(self) -> str:

@@ -105,7 +105,7 @@ async function updatePlayerStatusForOrganizer(statusUrl) {
     const classToRemove = 'unconfirmed_player';
     for (p in data.players) {
         const li = document.getElementById(p);
-        if (li && li.classList.contains(classToRemove)) {
+        if (li) {
             li.classList.remove(classToRemove);
             li.classList.add('confirmed_player');
             li.children[0].textContent = data.players[p].name;
@@ -154,6 +154,11 @@ async function updateGameStatusOrganizerDashboard(statusUrl) {
                 li.classList.add(currentPlayerClass);
             } else if (pid != currentPlayer && li.classList.contains(currentPlayerClass)) {
                 li.classList.remove('current_player');
+            }
+            const playerLink = li.getElementsByClassName('hostify');
+            console.log(playerLink);
+            if (playerLink) {
+                playerLink[0].textContent = prependHostName(data.players[pid].url);
             }
         }
         const cardsSpan = document.getElementById(`${pid}-cards`);

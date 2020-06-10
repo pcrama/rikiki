@@ -237,3 +237,19 @@ def test_Player_playable_cards__unconfirmed__throws(new_player):
 def test_Player_playable_cards__no_cards__throws(confirmed_player):
     with pytest.raises(IllegalStateError):
         confirmed_player.playable_cards
+
+
+def test_Player__update_secret__changes_secrect_id(new_player):
+    player = new_player
+    all_secrets = [player.secret_id]
+    with pytest.raises(IllegalStateError):
+        new_player.update_secret()
+    assert player.secret_id == all_secrets[0]
+    new_player.confirm('')
+    s2 = player.secret_id
+    assert s2 not in all_secrets
+    all_secrets.append(s2)
+    new_player.update_secret()
+    s3 = player.secret_id
+    assert s3 not in all_secrets
+    all_secrets.append(s3)
