@@ -22,6 +22,7 @@
     </li>
     {% endfor %}
   </ul>
+  <p>Players can recover their secret link at <span class="hostify">{{ url_for('player.restore_link') }}</span>.</p>
   <form method="post" action="{{ url_for('organizer.restart_with_same_players') }}" enctype="multipart/form-data">
     <input type="hidden" value="{{ organizer_secret }}" id="organizer_secret" name="organizer_secret">
     <input type="submit" value="Start new game with same players" id="start_new_game_submit">

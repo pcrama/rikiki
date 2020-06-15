@@ -20,7 +20,7 @@ play together over the internet.
 9. Click Submit.
 10. Your page should update to show the ~Wait for users~ display.
 11. Update the location to use ~https~: insert ~https://~, this should update all players' links to use ~https~, too.  As a bonus, it also enables copying a player URL simply by clicking on it.  Click on the name to copy the full line instead of only the URL.
-12. You can distribute these links to the players.  As they confirm their participation, their name will turn green and get a ✔ in front.  Be aware that the link of those players is updated to show the secret link that will display their cards.  Only share the `green' link with the player him/herself.
+12. You can distribute these links to the players.  As they confirm their participation, their name will turn green and get a ✔ in front.  Be aware that the link of those players is updated to show the secret link that will display their cards.  Only share the `green' link with the player him/herself.  Should a Player lose her link during the game, the safest alternative is to share the ~/player/restore/link/~ with them: it uses a cookie on the Player's browser to identify the Player and reset the secret.
 13. Once all (enough) players have joined, click ~Start Game~.
 14. The page updates to show the game status while the players play.  At the very end of the game, the button ~Start new game with same players~ will allow to restart the game without having the players registering again.
 
