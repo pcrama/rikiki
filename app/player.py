@@ -80,7 +80,7 @@ def confirm(secret_id='', game=None):
                                player_name=player.name)
     if request.method == 'POST':
         player.confirm(request.form.get('player_name', ''))
-        session[USER_COOKIE] = player.secret_id
+        session[USER_COOKIE] = player.cookie
         return redirect(url_for('player.player',
                                 secret_id=player.secret_id,
                                 _method='GET'))
@@ -464,11 +464,11 @@ def restore_link(game=None):
     POST: if CSRF token is right, restore player.
     """
     try:
-        secret_id = session[USER_COOKIE]
+        cookie = session[USER_COOKIE]
     except KeyError:
         abort(403)
     try:
-        player = next(p for p in game.players if p.secret_id == secret_id)
+        player = game.player_by_cookie(cookie)
     except StopIteration:
         abort(403)
     if not player.is_confirmed:
@@ -480,7 +480,7 @@ def restore_link(game=None):
         if request.form.get('csrf_token', '') != game.csrf_token:
             abort(404)
         player.update_secret()
-        session[USER_COOKIE] = player.secret_id
+        session[USER_COOKIE] = player.cookie
         return redirect(url_for('player.player',
                                 secret_id=player.secret_id,
                                 _method='GET'))

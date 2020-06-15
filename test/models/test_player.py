@@ -223,6 +223,10 @@ def test_Player__confirmed_without_cards__accepts_no_trick(confirmed_player):
         confirmed_player.add_trick()
 
 
+def test_Player__has_cookie(new_player):
+    assert new_player.cookie is not None
+
+
 def test_Player__confirmed_has_new_secret_id(new_player):
     unconfirmed_secret = new_player.secret_id
     new_player.confirm('')
@@ -239,17 +243,26 @@ def test_Player_playable_cards__no_cards__throws(confirmed_player):
         confirmed_player.playable_cards
 
 
-def test_Player__update_secret__changes_secrect_id(new_player):
+def test_Player__update_secret__changes_secrect_id_and_cookie(new_player):
     player = new_player
     all_secrets = [player.secret_id]
+    all_cookies = [player.cookie]
     with pytest.raises(IllegalStateError):
-        new_player.update_secret()
+        player.update_secret()
     assert player.secret_id == all_secrets[0]
-    new_player.confirm('')
+    assert player.cookie == all_cookies[0]
+    player.confirm('')
     s2 = player.secret_id
     assert s2 not in all_secrets
     all_secrets.append(s2)
-    new_player.update_secret()
+    # confirming does not update cookie, so no action/test for cookie
+    player.update_secret()
     s3 = player.secret_id
     assert s3 not in all_secrets
     all_secrets.append(s3)
+    c3 = player.cookie
+    assert c3 not in all_cookies
+    all_cookies.append(c3)
+    player.update_secret()
+    assert player.secret_id not in all_secrets
+    assert player.cookie not in all_cookies

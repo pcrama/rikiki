@@ -1,4 +1,5 @@
 """Model classes (the M in MVC)."""
+import base64
 import collections
 import enum
 import hashlib
@@ -166,6 +167,10 @@ class Game:
         """Look up a Player by her public ID."""
         return next(p for p in self._players if p.id == _id)
 
+    def player_by_cookie(self, cookie) -> "Player":
+        """Look up a Player by her cookie."""
+        return next(p for p in self._players if p.cookie == cookie)
+
     def player_by_secret_id(self, secret_id) -> "Player":
         """Look up a Player by her secret ID."""
         return next(p for p in self._players if p.secret_id == secret_id)
@@ -278,6 +283,10 @@ a Round."""
         """Reference to the Round the Player is currently participating in."""
         self._tricks = 0
         """How many tricks the Player has already won in a Round."""
+        self._cookie = self._generate_cookie()
+
+    def _generate_cookie(self) -> str:
+        return base64.a85encode(bytes(os.urandom(10))).decode('ascii')
 
     @property
     def name(self) -> str:
@@ -286,6 +295,11 @@ a Round."""
             return self._provisional_name
         else:
             return self._confirmed_name
+
+    @property
+    def cookie(self) -> str:
+        """Return the cookie of the Player."""
+        return self._cookie
 
     @property
     def secret_id(self) -> str:
@@ -298,9 +312,10 @@ a Round."""
         return "".join(f"{x:02X}" for x in os.urandom(16))
 
     def update_secret(self):
-        """Change Player's secret_id assuming she's confirmed."""
+        """Change Player's secret_id & cookie, assuming she's confirmed."""
         self._ensure_confirmed()
         self._confirmed_secret_id = self._generate_confirmed_secret_id()
+        self._cookie = self._generate_cookie()
 
     @property
     def id(self) -> str:

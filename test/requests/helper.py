@@ -125,7 +125,7 @@ def player_session(client, player: Union[app.Player, None, str]):
         if isinstance(player, str):
             secret_id = player
         else:
-            secret_id = player.secret_id
+            secret_id = player.cookie
 
     with client.session_transaction() as session:
         # save current session cookie

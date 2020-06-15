@@ -177,14 +177,21 @@ def test_player__confirmation__invalidates_confirmation_link(first_player, clien
     assert response.status_code == 403
 
 
-def test_player__confirmation__sets_USER_COOKIE(first_player, client):
+def test_player__confirmation__sets_USER_COOKIE(first_player, client, rikiki_app):
     unconfirmed_secret_id = first_player.secret_id
     confirmation_link = f'/player/confirm/{unconfirmed_secret_id}/'
     response = client.post(f'/player/confirm/',
                            data={'secret_id': first_player.secret_id,
                                  'confirmed_name': 'confirmation name'},
                            follow_redirects=True)
-    assert flask.session[USER_COOKIE] == first_player.secret_id
+    # cookie does not reveal secrets
+    assert flask.session[USER_COOKIE] != first_player.secret_id
+    # cookie is not easy to guess
+    assert flask.session[USER_COOKIE] != first_player.id
+    assert flask.session[USER_COOKIE] != unconfirmed_secret_id
+    # cookie allows to find back user
+    assert rikiki_app.game.player_by_cookie(
+        flask.session[USER_COOKIE]) is first_player
 
 
 def test_place_bid__post_only(first_player, client):
@@ -977,19 +984,19 @@ def test_restore__player_is_not_confirmed__404(rikiki_app, client, first_player)
     player = first_player
     # overkill: how would a player have a valid session cookie without
     # confirming?
-    setup_player_session(client, player.secret_id)
+    setup_player_session(client, player)
     response = client.get('/player/restore/link', follow_redirects=True)
     assert response.status_code == 403
 
 
 def test_restore__player_post_bad_csrf_token__403(rikiki_app, client, confirmed_first_player):
     player = confirmed_first_player
-    setup_player_session(client, player.secret_id)
+    setup_player_session(client, player)
     response = client.post('/player/restore/link/',
                            data={'csrf_token': 'bad_token'},
                            follow_redirects=True)
     assert response.status_code == 404
-    setup_player_session(client, player.secret_id)
+    setup_player_session(client, player)
     response = client.post('/player/restore/link/',
                            data={},
                            follow_redirects=True)
@@ -998,8 +1005,8 @@ def test_restore__player_post_bad_csrf_token__403(rikiki_app, client, confirmed_
 
 def test_restore__happy_path(rikiki_app, client, confirmed_first_player):
     player = confirmed_first_player
-    old_secret = player.secret_id
-    setup_player_session(client, player.secret_id)
+    old_secret = player.cookie
+    setup_player_session(client, player)
     response = client.get('/player/restore/link', follow_redirects=True)
     assert response.status_code == 200
     assert rendered_template(response, 'player.restore_link')
@@ -1013,4 +1020,4 @@ def test_restore__happy_path(rikiki_app, client, confirmed_first_player):
     assert FLASH_ERROR not in response.data
     assert rendered_template(response, 'player.player')
     assert flask.session[USER_COOKIE] != old_secret
-    assert flask.session[USER_COOKIE] == player.secret_id
+    assert flask.session[USER_COOKIE] == player.cookie
