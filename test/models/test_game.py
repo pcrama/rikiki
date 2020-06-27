@@ -250,16 +250,24 @@ def test_Game__status_summary(new_game_waiting_room):
         assert len(set(summaries)) == len(summaries)
 
 
-def test_Game_restart_with_same_players__invalid_state(new_game_waiting_room):
+# This is not a nice unit test because all (?)
+# restart_with_same_players cases test cases are crammed inside one
+# test function, but there is so much setup to do that I grouped them
+# all.
+def test_Game_restart_with_same_players__scenario(new_game_waiting_room):
     game = new_game_waiting_room
     assert game.state == Game.State.CONFIRMING, "Precondition not met"
     with pytest.raises(ModelError):
         game.restart_with_same_players()
-    for idx, p in enumerate(game.players):
-        if idx != 1:
+    DOES_NOT_CONFIRM_1ST_GAME = game.players[1]
+    for p in game.players:
+        if p is DOES_NOT_CONFIRM_1ST_GAME:
+            continue
+        else:
             p.confirm('')
     game.start_game()
     assert game.state == Game.State.PLAYING, "Precondition in middle of test not met"
+    FIRST_ROUND_CARD_COUNT = game._current_card_count
     # Remember all information about players that may not change
     players_first_game = [(p.name, p.id, p.secret_id, p.is_confirmed)
                           for p in game.players]
@@ -268,7 +276,9 @@ def test_Game_restart_with_same_players__invalid_state(new_game_waiting_room):
     # reset all players hands, so that they can join a new round
     for p in game.confirmed_players:
         p._cards = []
-    game._current_card_count = game.max_cards_per_player()
+    # simulate last round by claiming we are back with max amount of
+    # cards in increasing mode:
+    game._current_card_count = FIRST_ROUND_CARD_COUNT
     game._increasing = True
     game.round_finished()
     assert game.state == Game.State.PAUSED_BETWEEN_ROUNDS, "Precondition in middle of test not met"
@@ -289,3 +299,21 @@ def test_Game_restart_with_same_players__invalid_state(new_game_waiting_room):
         assert p in players_first_game
     # ... yet order changed
     assert any(x != y for x, y in zip(players_first_game, players_second_game))
+    assert game._increasing is False
+    assert game.confirmed_players == []
+    # A previously defined but non-confirmed player may join
+    DOES_NOT_CONFIRM_1ST_GAME.confirm('joins late')
+    game.start_game()
+    assert len(game.confirmed_players) == len(players_first_game)
+    assert game._current_card_count == game.max_cards_per_player()
+    # check then reset all players hands, so that they can join a new round
+    for p in game.confirmed_players:
+        assert p.card_count == game.max_cards_per_player()
+        p._cards = []
+    game.round_finished()
+    assert game.state == Game.State.PAUSED_BETWEEN_ROUNDS, "Precondition in middle of test not met"
+    # Check 2nd round of second game is playable with 1 card less
+    game.start_next_round()
+    assert game.state == Game.State.PLAYING
+    for p in game.confirmed_players:
+        assert p.card_count == game.max_cards_per_player() - 1

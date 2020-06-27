@@ -74,17 +74,25 @@ class Game:
         """Create new Game instance."""
         self._players = players
         """List of players invited to the Game."""
-        self._state = Game.State.CONFIRMING
-        """Game state."""
-        self._confirmed_players: List["Player"] = []
-        """List of players that had confirmed before Game started."""
-        self._current_card_count: int = 0
-        """How many cards are used in the current round."""
-        self._round: Optional["Round"]
-        self._increasing = False
-        """Number of cards per Players decreasing or increasing."""
         self._csrf_token = "".join(f"{x:02X}" for x in os.urandom(16))
         """All requests using a session cookie must contain this token."""
+        self._state: Game.State
+        """Game state."""
+        self._confirmed_players: List["Player"]
+        """List of players that had confirmed before Game started."""
+        self._current_card_count: int
+        """How many cards are used in the current round."""
+        self._round: Optional["Round"]
+        self._increasing: bool
+        """Number of cards per Players decreasing or increasing."""
+        self._prepare_game()
+
+    def _prepare_game(self):
+        self._state = Game.State.CONFIRMING
+        self._confirmed_players = []
+        self._current_card_count = 0
+        self._round = None
+        self._increasing = False
 
     def status_summary(self) -> str:
         """Return an identifier for the current state.
@@ -131,11 +139,8 @@ class Game:
     def restart_with_same_players(self) -> None:
         """Reset Game state to waiting room, shuffling Players."""
         self._ensure_state(Game.State.DONE)
-        self._state = Game.State.CONFIRMING
-        self._confirmed_players = []
-        self._current_card_count = 0
-        self._round = None
         old_players = [p.id for p in self._players]
+        self._prepare_game()
         # ensure we are not very unlucky and shuffle players list back
         # into same order:
         while len(self._players) > 1:
