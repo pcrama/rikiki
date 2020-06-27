@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-06-10 23:52+0200\n"
+"POT-Creation-Date: 2020-06-27 06:25+0200\n"
 "PO-Revision-Date: 2020-05-24 20:40+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -76,6 +76,10 @@ msgstr ", %(missing_tricks)s trop peu"
 #: player.py:284
 msgid "Finish Round"
 msgstr "Redistribuer les cartes"
+
+#: player.py:374
+msgid "No trump"
+msgstr "Pas d'atout"
 
 #: player.py:376
 msgid "Trump: "
@@ -173,9 +177,10 @@ msgid ""
 "personal link valid during the game.  By clicking the 'Submit' button "
 "below, you agree to its usage.  This session cookie is strictly necessary"
 " for the site and expires after 2h of inactivity."
-msgstr "Cette application utilise un cookie pour vous permettre de "
-"récupérer votre lien personnel pour cette partie.  En cliquant 'Confirmer',"
-" vous acceptez l'utilisation de ce cookie.  Ce cookie est strictement "
+msgstr ""
+"Cette application utilise un cookie pour vous permettre de récupérer "
+"votre lien personnel pour cette partie.  En cliquant 'Confirmer', vous "
+"acceptez l'utilisation de ce cookie.  Ce cookie est strictement "
 "nécessaire au fonctionnement du site et s'effacera après 2h d'inactivité."
 
 #: templates/player/confirm.html:11

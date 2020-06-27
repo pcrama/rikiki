@@ -371,7 +371,7 @@ def api_status(secret_id='', previous_status_summary='', game=None):
             'game_state': game_state(game, player, total_bids=total_bids),
             'id': player.id,
             'cards': ''.join(cards),
-            'trump': ('No trump'
+            'trump': (_('No trump')
                       if game.round.trump is None
                       else (_('Trump: ')
                             + render_player_card_fragment(game.round.trump))),
