@@ -138,7 +138,7 @@ class Game:
         old_players = [p.id for p in self._players]
         # ensure we are not very unlucky and shuffle players list back
         # into same order:
-        while True and len(self._players) > 1:
+        while len(self._players) > 1:
             random.shuffle(self._players)
             if old_players != [p.id for p in self._players]:
                 break
