@@ -20,7 +20,7 @@ msgstr ""
 
 #: organizer.py:39
 msgid "Not enough players in list"
-msgstr "Votre list ne contient pas assez de joueurs"
+msgstr "Votre liste ne contient pas assez de joueurs"
 
 #: player.py:73
 #, python-format
@@ -144,7 +144,7 @@ msgid ""
 "If you are a player, ask the organizer for a secret link to your player "
 "page."
 msgstr ""
-"Si vous êtes un jouer, demander le lien secret de votre page à "
+"Si vous êtes un joueur, demandez le lien secret de votre page à "
 "l'organisateur."
 
 #: templates/404.html:2
@@ -219,4 +219,3 @@ msgstr ""
 "L'organisateur a déjà démarré la partie et toutes les cartes ont été "
 "distribuées.  Désolé, vous devrez attendre le début d'une nouvelle "
 "partie."
-
