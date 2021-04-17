@@ -1,8 +1,7 @@
 """Controllers for the organizer."""
 
 import functools
-import os
-from typing import List, Optional, Set
+from typing import Optional
 
 from flask import (Blueprint, abort, current_app, flash, jsonify,
                    redirect, render_template, request, session, url_for)
@@ -106,7 +105,7 @@ def player(secret_id='', game=None):
 
 @bp.route('/place/bid/', methods=('POST',))
 @with_valid_game
-def place_bid(secret_id='', previous_status_summary='', game=None):
+def place_bid(secret_id='', game=None):
     """Control Player model for the players: place a bid."""
     player = get_player(current_app, request, secret_id)
     if (not player.is_confirmed or
@@ -127,7 +126,7 @@ def place_bid(secret_id='', previous_status_summary='', game=None):
 
 @bp.route('/play/card/', methods=('POST',))
 @with_valid_game
-def play_card(secret_id='', previous_status_summary='', game=None):
+def play_card(secret_id='', game=None):
     """Control Player model for the players: place a bid."""
     player = get_player(current_app, request, secret_id)
     # TODO: this logic belongs in the model?
@@ -153,7 +152,7 @@ def play_card(secret_id='', previous_status_summary='', game=None):
 
 @bp.route('/finish/round/', methods=('POST',))
 @with_valid_game
-def finish_round(secret_id='', previous_status_summary='', game=None):
+def finish_round(secret_id='', game=None):
     """Control Player model for the players: place a bid."""
     player = get_player(current_app, request, secret_id)
     # # TODO: this logic belongs in the model?

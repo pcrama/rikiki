@@ -1,6 +1,7 @@
 """Model classes (the M in MVC)."""
 import base64
 import collections
+import collections.abc
 import enum
 import hashlib
 import os
@@ -65,10 +66,10 @@ class Game:
 
         # Explicit values because the client code in the web browser
         # needs them as well.
-        CONFIRMING: int = 0
-        PLAYING: int = 1
-        PAUSED_BETWEEN_ROUNDS: int = 2
-        DONE: int = 3
+        CONFIRMING = 0
+        PLAYING = 1
+        PAUSED_BETWEEN_ROUNDS = 2
+        DONE = 3
 
     def __init__(self, players: List["Player"]):
         """Create new Game instance."""
@@ -120,7 +121,7 @@ class Game:
         if len(self.confirmed_players) > 0:
             return MAX_CARDS // len(self.confirmed_players)
         else:
-            return ModelError(
+            raise ModelError(
                 f'Game in state {self._state} has 0 confirmed players')
 
     def start_game(self) -> "Round":
@@ -596,10 +597,10 @@ class Round:
 
         # Explicit values because the client code in the web browser
         # needs them as well.
-        BIDDING: int = 100
-        PLAYING: int = 101
-        BETWEEN_TRICKS: int = 102
-        DONE: int = 103
+        BIDDING = 100
+        PLAYING = 101
+        BETWEEN_TRICKS = 102
+        DONE = 103
 
     def __init__(self,
                  game: Game,
@@ -767,7 +768,7 @@ class Round:
 
     def deal_cards(self, how_many_cards):
         """Shuffle cards and tell each player what cards he has."""
-        cards = list(range(MAX_CARDS))
+        cards = list(map(Card, range(MAX_CARDS)))
         random.shuffle(cards)
         for (i, p) in enumerate(self._players):
             p.accept_cards(

@@ -1,6 +1,5 @@
 """Controllers for the organizer."""
 
-import functools
 import os
 from typing import List, Optional, Set
 
